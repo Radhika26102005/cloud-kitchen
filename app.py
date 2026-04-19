@@ -8,6 +8,9 @@ import stripe
 from models import db, User, FoodItem, Order, Review, OrderItem, Notification
 from sqlalchemy import func
 from dotenv import load_dotenv
+from flask_mail import Mail, Message
+from itsdangerous import URLSafeTimedSerializer
+import re
 
 load_dotenv() # Load variables from .env
 
@@ -27,6 +30,17 @@ if app.config['SQLALCHEMY_DATABASE_URI'].startswith("postgres://"):
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024 # 16MB max-limit
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+
+# Email Configuration
+app.config['MAIL_SERVER'] = os.getenv('MAIL_SERVER', 'smtp.gmail.com')
+app.config['MAIL_PORT'] = int(os.getenv('MAIL_PORT', 587))
+app.config['MAIL_USE_TLS'] = True
+app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME')
+app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')
+app.config['MAIL_DEFAULT_SENDER'] = os.getenv('MAIL_DEFAULT_SENDER')
+
+mail = Mail(app)
+serializer = URLSafeTimedSerializer(app.config['SECRET_KEY'])
 
 db.init_app(app)
 with app.app_context():
@@ -90,6 +104,9 @@ def login():
         password = request.form.get('password')
         user = User.query.filter_by(email=email).first()
         if user and check_password_hash(user.password, password):
+            if not user.is_verified:
+                flash('Please verify your email address first!', 'warning')
+                return redirect(url_for('login'))
             login_user(user)
             if user.role == 'seller':
                 return redirect(url_for('seller_dashboard'))
@@ -107,6 +124,12 @@ def register():
         role = request.form.get('role')
         location = request.form.get('location')
         
+        # 1. Strict Email Validation (Regex)
+        email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+        if not re.match(email_pattern, email):
+            flash('Invalid email format. Please enter a valid email address.', 'danger')
+            return redirect(url_for('register'))
+
         user = User.query.filter_by(email=email).first()
         if user:
             flash('Email address already exists', 'danger')
@@ -117,12 +140,47 @@ def register():
             email=email, 
             password=generate_password_hash(password, method='pbkdf2:sha256'), 
             role=role,
-            location=location
+            location=location,
+            is_verified=False # Start as unverified
         )
         db.session.add(new_user)
         db.session.commit()
+
+        # 2. Send Verification Email
+        try:
+            token = serializer.dumps(email, salt='email-confirm')
+            verify_url = url_for('confirm_email', token=token, _external=True)
+            msg = Message('Confirm Your Cloud Kitchen Account',
+                          recipients=[email])
+            msg.body = f'Welcome to Cloud Kitchen! Please verify your account by clicking here: {verify_url}'
+            mail.send(msg)
+            flash('Account created! Please check your email to verify your account.', 'success')
+        except Exception as e:
+            # For development: Auto-verify if email fails (uncomment for prod)
+            # new_user.is_verified = True
+            # db.session.commit()
+            flash('Account created, but we could not send a verification email. Please contact support.', 'warning')
+            print(f"Mail Error: {e}")
+
         return redirect(url_for('login'))
     return render_template('register.html')
+
+@app.route('/confirm_email/<token>')
+def confirm_email(token):
+    try:
+        email = serializer.loads(token, salt='email-confirm', max_age=3600)
+    except:
+        flash('The confirmation link is invalid or has expired.', 'danger')
+        return redirect(url_for('login'))
+
+    user = User.query.filter_by(email=email).first_or_404()
+    if user.is_verified:
+        flash('Account already verified. Please login.', 'info')
+    else:
+        user.is_verified = True
+        db.session.commit()
+        flash('You have confirmed your account. Thanks!', 'success')
+    return redirect(url_for('login'))
 
 @app.route('/logout')
 @login_required
