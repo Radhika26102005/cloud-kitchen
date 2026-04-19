@@ -17,6 +17,15 @@
         <div class="nav-links">
             <a href="{{ url_for('index') }}">Home</a>
             {% if current_user.is_authenticated %}
+                {% if current_user.email == 'admin@cloudkitchen.com' %}
+                    <a href="{{ url_for('admin_dashboard') }}" style="color: #e67e22; font-weight: 800;">👑 Admin</a>
+                {% endif %}
+                
+                <a href="#" id="notifBell" style="position: relative;">
+                    🔔 
+                    <span id="notifCount" style="display: none; position: absolute; top: -8px; right: -8px; background: red; color: white; border-radius: 50%; padding: 2px 6px; font-size: 0.7rem;">0</span>
+                </a>
+
                 {% if current_user.role == 'customer' %}
                     <a href="{{ url_for('view_cart') }}">🛒 Cart</a>
                 {% endif %}
@@ -24,9 +33,9 @@
                 {% if current_user.role == 'seller' %}
                     <a href="{{ url_for('seller_dashboard') }}">My Kitchen</a>
                 {% elif current_user.role == 'delivery' %}
-                    <a href="{{ url_for('delivery_dashboard') }}">Delivery Dashboard</a>
+                    <a href="{{ url_for('delivery_dashboard') }}">Delivery</a>
                 {% endif %}
-                <a href="{{ url_for('logout') }}" class="btn btn-primary">Logout ({{ current_user.username }})</a>
+                <a href="{{ url_for('logout') }}" class="btn btn-primary" style="padding: 0.5rem 1rem;">Logout</a>
             {% else %}
                 <a href="{{ url_for('login') }}">Login</a>
                 <a href="{{ url_for('register') }}" class="btn btn-primary">Sign Up</a>
@@ -56,6 +65,26 @@
         {% if current_user.is_authenticated %}
             socket.on('connect', () => {
                 socket.emit('join', {room: 'user_{{ current_user.id }}'});
+            });
+
+            socket.on('new_notification', (data) => {
+                // Update Badge
+                const badge = document.getElementById('notifCount');
+                let count = parseInt(badge.innerText) || 0;
+                badge.innerText = count + 1;
+                badge.style.display = 'block';
+
+                // Show Toast
+                const toast = document.createElement('div');
+                toast.className = 'alert alert-success';
+                toast.style.position = 'fixed';
+                toast.style.top = '80px';
+                toast.style.right = '20px';
+                toast.style.zIndex = '9999';
+                toast.style.boxShadow = 'var(--shadow)';
+                toast.innerHTML = `🔔 <strong>Notification:</strong> ${data.message}`;
+                document.body.appendChild(toast);
+                setTimeout(() => toast.remove(), 6000);
             });
 
             socket.on('status_change', (data) => {
