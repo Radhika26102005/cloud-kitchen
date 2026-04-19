@@ -10,48 +10,87 @@
         </div>
     </div>
 
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-top: 2rem;">
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2.5rem; margin-top: 3rem;">
         
         <!-- Available Orders -->
-        <div style="background: var(--bg-color); padding: 1.5rem; border-radius: var(--border-radius);">
-            <h3>Available Orders</h3>
+        <div>
+            <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;">
+                <div style="background: #ff5200; color: white; width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                    <i class="fas fa-box-open"></i>
+                </div>
+                <h3 style="margin: 0;">Open Requests</h3>
+            </div>
+            
             {% if available_orders %}
                 {% for order in available_orders %}
-                <div style="border: 1px solid var(--border-color); padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
-                    <p><strong>Order #{{ order.id }}</strong></p>
-                    <p>Delivery To: {{ order.delivery_address or 'Not specified' }}</p>
-                    <a href="{{ url_for('claim_order', order_id=order.id) }}" class="btn btn-primary" style="display: block; text-align: center;">Claim Order</a>
+                <div style="background: white; padding: 2rem; border-radius: var(--border-radius); box-shadow: var(--shadow); border: 1px solid var(--border-color); margin-bottom: 1.5rem; transition: transform 0.3s ease;">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem;">
+                        <div>
+                            <span style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Order ID</span>
+                            <h4 style="margin: 0;">#{{ order.id }}</h4>
+                        </div>
+                        <div style="text-align: right;">
+                            <span style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Payout</span>
+                            <h4 style="margin: 0; color: #2ecc71;">${{ "%.2f"|format(order.delivery_fee) }}</h4>
+                        </div>
+                    </div>
+                    
+                    <p style="font-size: 0.95rem; color: var(--text-muted); margin-bottom: 1.5rem;">
+                        <i class="fas fa-map-marker-alt" style="color: #ff5200;"></i> {{ order.delivery_address or 'Not specified' }}
+                    </p>
+                    
+                    <a href="{{ url_for('claim_order', order_id=order.id) }}" class="btn btn-primary" style="display: block; width: 100%; border-radius: 12px; font-weight: 700;">Accept Delivery</a>
                 </div>
                 {% endfor %}
             {% else %}
-                <p>No available orders to deliver right now.</p>
+                <div style="background: white; padding: 3rem; border-radius: var(--border-radius); text-align: center; border: 2px dashed var(--border-color);">
+                    <p style="color: var(--text-muted); margin: 0;">Searching for new orders...</p>
+                </div>
             {% endif %}
         </div>
 
-        <!-- My Claimed Orders -->
-        <div style="background: var(--bg-color); padding: 1.5rem; border-radius: var(--border-radius);">
-            <h3>My Claimed Orders</h3>
+        <!-- My Active Deliveries -->
+        <div>
+            <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;">
+                <div style="background: #3498db; color: white; width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                    <i class="fas fa-motorcycle"></i>
+                </div>
+                <h3 style="margin: 0;">My Active Jobs</h3>
+            </div>
+
             {% if my_orders %}
                 {% for order in my_orders %}
-                <div style="border: 1px solid var(--border-color); padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
-                    <p><strong>Order #{{ order.id }}</strong></p>
-                    <p>Delivery To: {{ order.delivery_address or 'Not specified' }}</p>
-                    <p>Status: <strong style="color: var(--primary-color);">{{ order.status }}</strong></p>
-                    <a href="{{ url_for('order_tracking', order_id=order.id) }}" class="btn btn-secondary" style="display: block; text-align: center; margin-bottom: 0.5rem;">Update Status</a>
+                <div style="background: white; padding: 2rem; border-radius: var(--border-radius); box-shadow: var(--shadow); border: 1px solid var(--border-color); margin-bottom: 1.5rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                        <h4 style="margin: 0;">Order #{{ order.id }}</h4>
+                        <span class="badge" style="background: #e0f2fe; color: #0369a1;">{{ order.status }}</span>
+                    </div>
                     
-                    {% if order.status == 'Out for Delivery' %}
-                    <button onclick="startSharingLocation({{ order.id }})" class="btn btn-primary" style="display: block; width: 100%;" id="shareBtn-{{ order.id }}">
-                        📍 Share Live Location
-                    </button>
-                    <p id="locStatus-{{ order.id }}" style="font-size: 0.9rem; color: green; display: none; margin-top: 0.5rem;">Location sharing active...</p>
-                    {% endif %}
+                    <div style="background: var(--bg-color); padding: 1rem; border-radius: 10px; margin-bottom: 1.5rem;">
+                        <p style="font-size: 0.9rem; margin: 0;"><strong>Customer Address:</strong></p>
+                        <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0.5rem 0 0 0;">{{ order.delivery_address or 'Not specified' }}</p>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <a href="{{ url_for('order_tracking', order_id=order.id) }}" class="btn btn-secondary" style="font-size: 0.85rem; border-radius: 10px;">View Details</a>
+                        
+                        {% if order.status == 'Out for Delivery' %}
+                        <button onclick="startSharingLocation({{ order.id }})" class="btn btn-primary" style="font-size: 0.85rem; border-radius: 10px;" id="shareBtn-{{ order.id }}">
+                            <i class="fas fa-location-arrow"></i> Live Location
+                        </button>
+                        {% endif %}
+                    </div>
+                    <p id="locStatus-{{ order.id }}" style="font-size: 0.8rem; color: #2ecc71; display: none; margin-top: 1rem; text-align: center; font-weight: 600;">
+                        📡 Broadcasting your location to customer...
+                    </p>
                 </div>
                 {% endfor %}
             {% else %}
-                <p>You haven't claimed any orders yet.</p>
+                <div style="background: white; padding: 3rem; border-radius: var(--border-radius); text-align: center; border: 2px dashed var(--border-color);">
+                    <p style="color: var(--text-muted); margin: 0;">No active deliveries. Claim an order to start!</p>
+                </div>
             {% endif %}
         </div>
-
     </div>
 </div>
 

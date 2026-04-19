@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cloud Kitchen | Healthy Home-Cooked Food</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
     <meta name="theme-color" content="#ff5200">
@@ -12,7 +13,8 @@
 <body>
     <nav class="navbar">
         <a href="{{ url_for('index') }}" class="navbar-brand">
-            🌿 Cloud Kitchen
+            <img src="{{ url_for('static', filename='logo.png') }}" alt="Cloud Kitchen Logo" style="height: 40px;">
+            Cloud Kitchen
         </a>
         <div class="nav-links">
             <a href="{{ url_for('index') }}">Home</a>
