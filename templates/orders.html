@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container" style="max-width: 900px; padding-top: 2rem;">
+    <h2 style="margin-bottom: 2rem;">{{ 'My Order History' if current_user.role == 'customer' else 'Kitchen Order Management' }}</h2>
+
+    {% if current_user.role == 'seller' %}
+        <div style="display: flex; gap: 1rem; margin-bottom: 2rem;">
+            <div style="background: var(--card-bg); padding: 1rem 2rem; border-radius: 50px; box-shadow: var(--shadow);">
+                <strong>🟢 Preparing/Due:</strong> {{ orders | selectattr('status', 'in', ['Paid', 'Preparing']) | list | length }}
+            </div>
+            <div style="background: var(--card-bg); padding: 1rem 2rem; border-radius: 50px; box-shadow: var(--shadow);">
+                <strong>🚚 Out for Delivery:</strong> {{ orders | selectattr('status', 'equalto', 'Out for Delivery') | list | length }}
+            </div>
+            <div style="background: var(--card-bg); padding: 1rem 2rem; border-radius: 50px; box-shadow: var(--shadow);">
+                <strong>✅ Completed:</strong> {{ orders | selectattr('status', 'equalto', 'Delivered') | list | length }}
+            </div>
+        </div>
+    {% endif %}
+
+    <div style="display: grid; gap: 2rem;">
+        {% for order in orders %}
+        <div style="background: var(--card-bg); border-radius: var(--border-radius); box-shadow: var(--shadow); overflow: hidden; padding: 2rem; border-left: 5px solid {% if order.status == 'Delivered' %}#27ae60{% elif order.status == 'Out for Delivery' %}#f39c12{% else %}#ff5200{% endif %};">
+            
+            <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-color); padding-bottom: 1rem; margin-bottom: 1.5rem;">
+                <div>
+                    <h3 style="margin: 0;">Order #{{ order.id }}</h3>
+                    <p style="margin: 0; color: var(--text-muted); font-size: 0.9rem;">Placed on {{ order.created_at.strftime('%Y-%m-%d %H:%M') if order.created_at else 'Recently' }}</p>
+                </div>
+                <div style="text-align: right;">
+                    <span class="badge" style="font-size: 1rem; background: {% if order.status == 'Delivered' %}#e8f5e9{% elif order.status == 'Out for Delivery' %}#fff8e1{% else %}#ffebee{% endif %}; color: {% if order.status == 'Delivered' %}#2e7d32{% elif order.status == 'Out for Delivery' %}#f57f17{% else %}#c62828{% endif %};">
+                        {{ order.status }}
+                    </span>
+                    <h3 style="margin: 0.5rem 0 0 0; color: var(--primary-color);">${{ "%.2f"|format(order.total_amount) }}</h3>
+                    {% if current_user.role == 'seller' %}
+                        <p style="font-size: 0.8rem; color: #2ecc71; margin: 0;">Your Net: ${{ "%.2f"|format(order.total_amount - order.delivery_fee - order.service_fee - order.platform_commission) }}</p>
+                    {% elif current_user.role == 'delivery' %}
+                        <p style="font-size: 0.8rem; color: #2ecc71; margin: 0;">Your Fee: ${{ "%.2f"|format(order.delivery_fee) }}</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Items List -->
+            <div style="display: grid; gap: 1rem; margin-bottom: 1.5rem;">
+                {% for item in order.items %}
+                    {% if current_user.role != 'seller' or item.food_item.seller_id == current_user.id %}
+                    <div style="display: flex; gap: 1rem; align-items: center; background: var(--bg-color); padding: 1rem; border-radius: 8px;">
+                        <img src="{{ item.food_item.image_url }}" alt="{{ item.food_item.name }}" style="width: 60px; height: 60px; border-radius: 8px; object-fit: cover;">
+                        <div style="flex-grow: 1;">
+                            <strong style="display: block; font-size: 1.1rem;">{{ item.food_item.name }}</strong>
+                            <span style="color: var(--text-muted);">Qty: {{ item.quantity }} × ${{ "%.2f"|format(item.price) }}</span>
+                        </div>
+                        <div>
+                            <strong>${{ "%.2f"|format(item.quantity * item.price) }}</strong>
+                        </div>
+                    </div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+
+            <!-- Actions -->
+            <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-color); padding-top: 1.5rem;">
+                <p style="margin: 0; color: var(--text-muted); max-width: 60%;">
+                    <strong>Delivery:</strong> {{ order.delivery_address or 'Not specified' }}
+                </p>
+                
+                <div style="display: flex; gap: 1rem;">
+                    {% if current_user.role == 'seller' %}
+                        <form method="POST" action="{{ url_for('update_order_status', order_id=order.id) }}" style="margin: 0; display: flex; gap: 0.5rem;">
+                            <select name="status" class="form-control" style="padding: 0.5rem; width: auto;">
+                                <option value="Preparing" {% if order.status == 'Preparing' %}selected{% endif %}>Preparing</option>
+                                <option value="Ready for Pickup" {% if order.status == 'Ready for Pickup' %}selected{% endif %}>Ready for Pickup</option>
+                            </select>
+                            <button type="submit" class="btn btn-primary" style="padding: 0.5rem 1rem;">Update</button>
+                        </form>
+                    {% endif %}
+                    <a href="{{ url_for('order_tracking', order_id=order.id) }}" class="btn btn-secondary">Track Order</a>
+                </div>
+            </div>
+            
+        </div>
+        {% else %}
+        <div style="text-align: center; padding: 4rem; background: var(--card-bg); border-radius: var(--border-radius); box-shadow: var(--shadow);">
+            <h3 style="color: var(--text-muted);">No orders found.</h3>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

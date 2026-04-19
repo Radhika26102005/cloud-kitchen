@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container" style="max-width: 800px; margin: 0 auto; padding-top: 2rem;">
+    <h2>Your Shopping Cart</h2>
+    
+    {% if items %}
+    <div style="background: var(--card-bg); padding: 2rem; border-radius: var(--border-radius); box-shadow: var(--shadow); margin-top: 2rem;">
+        <table style="width: 100%; border-collapse: collapse; text-align: left;">
+            <thead>
+                <tr style="border-bottom: 2px solid var(--border-color);">
+                    <th style="padding-bottom: 1rem;">Item</th>
+                    <th style="padding-bottom: 1rem;">Price</th>
+                    <th style="padding-bottom: 1rem;">Qty</th>
+                    <th style="padding-bottom: 1rem;">Subtotal</th>
+                    <th style="padding-bottom: 1rem;">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for entry in items %}
+                <tr style="border-bottom: 1px solid var(--border-color);">
+                    <td style="padding: 1rem 0; font-weight: 600;">{{ entry.food.name }}</td>
+                    <td style="padding: 1rem 0;">${{ "%.2f"|format(entry.food.price) }}</td>
+                    <td style="padding: 1rem 0;">{{ entry.cart_item.quantity }}</td>
+                    <td style="padding: 1rem 0; font-weight: 700;">${{ "%.2f"|format(entry.subtotal) }}</td>
+                    <td style="padding: 1rem 0;">
+                        <form method="POST" action="{{ url_for('remove_from_cart', cart_id=entry.cart_item.id) }}" style="margin: 0;">
+                            <button type="submit" class="btn" style="background: transparent; color: #ff5200; padding: 0;">Remove</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 2rem; padding-top: 1rem; border-top: 2px solid var(--border-color);">
+            <h3 style="margin: 0;">Total Amount:</h3>
+            <h2 style="margin: 0; color: var(--primary-color);">${{ "%.2f"|format(total) }}</h2>
+        </div>
+        
+        <div style="text-align: right; margin-top: 2rem;">
+            <a href="{{ url_for('checkout') }}" class="btn btn-primary" style="font-size: 1.1rem; padding: 1rem 3rem;">Proceed to Checkout</a>
+        </div>
+    </div>
+    {% else %}
+    <div style="text-align: center; padding: 4rem; background: var(--card-bg); border-radius: var(--border-radius); box-shadow: var(--shadow); margin-top: 2rem;">
+        <h3 style="color: var(--text-muted);">Your cart is empty 🛒</h3>
+        <a href="{{ url_for('index') }}" class="btn btn-primary" style="margin-top: 1rem;">Browse Menu</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

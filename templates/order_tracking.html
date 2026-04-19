@@ -1,0 +1,111 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="tracking-container">
+    <h2>Order #{{ order.id }} Tracking</h2>
+    <p style="color: var(--text-muted); margin-bottom: 0.5rem;">Total Amount: ${{ "%.2f"|format(order.total_amount) }}</p>
+    <p style="color: var(--text-muted); margin-bottom: 2rem;"><strong>Delivery To:</strong> {{ order.delivery_address or 'Not specified' }}</p>
+
+    <div class="status-steps">
+        {% set statuses = ['Pending', 'Paid', 'Preparing', 'Out for Delivery', 'Delivered'] %}
+        {% set current_index = statuses.index(order.status) if order.status in statuses else 0 %}
+        
+        {% for status in statuses %}
+        <div class="step {% if loop.index0 <= current_index %}active{% endif %}">
+            <div class="step-label">{{ status }}</div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Live Map Section -->
+    <div id="mapContainer" style="margin-top: 3rem; display: none;">
+        <h4>Live Delivery Location</h4>
+        <div id="map" style="width: 100%; height: 300px; border-radius: 8px; margin-top: 1rem; border: 1px solid var(--border-color);"></div>
+        <p id="mapStatusText" style="text-align: center; color: var(--text-muted); margin-top: 0.5rem;">Waiting for delivery partner's location...</p>
+    </div>
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        const orderId = {{ order.id }};
+        let map = null;
+        let deliveryMarker = null;
+        let homeMarker = null;
+        
+        function initMap(deliveryLat, deliveryLng, targetLat, targetLng) {
+            document.getElementById('mapContainer').style.display = 'block';
+            map = L.map('map').setView([targetLat || deliveryLat, targetLng || deliveryLng], 14);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+
+            // Customer Home Marker (Green or standard icon)
+            if (targetLat && targetLng) {
+                homeMarker = L.marker([targetLat, targetLng], {title: "Your Location"}).addTo(map);
+                homeMarker.bindPopup("<b>Delivery Destination</b>").openPopup();
+            }
+
+            // Delivery Person Marker
+            if (deliveryLat && deliveryLng) {
+                deliveryMarker = L.marker([deliveryLat, deliveryLng], {title: "Delivery Partner"}).addTo(map);
+            }
+            
+            document.getElementById('mapStatusText').innerText = "Live tracking active";
+        }
+
+        function pollLocation() {
+            fetch(`/api/get_location/${orderId}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === 'Out for Delivery' && data.lat && data.lng) {
+                        if (!map) {
+                            initMap(data.lat, data.lng, data.target_lat, data.target_lng);
+                        } else {
+                            if (!deliveryMarker) {
+                                deliveryMarker = L.marker([data.lat, data.lng], {title: "Delivery Partner"}).addTo(map);
+                            } else {
+                                deliveryMarker.setLatLng([data.lat, data.lng]);
+                            }
+                            
+                            // Fit bounds to show both customer and delivery partner
+                            if (homeMarker) {
+                                const group = new L.featureGroup([deliveryMarker, homeMarker]);
+                                map.fitBounds(group.getBounds().pad(0.5));
+                            } else {
+                                map.panTo([data.lat, data.lng]);
+                            }
+                        }
+                    } else if (data.status === 'Delivered' && map) {
+                        document.getElementById('mapStatusText').innerText = "Order Delivered!";
+                    }
+                })
+                .catch(err => console.error(err));
+        }
+
+        // Poll every 5 seconds
+        setInterval(pollLocation, 5000);
+        pollLocation(); // initial call
+    </script>
+
+    <div style="margin-top: 3rem; padding-top: 2rem; border-top: 1px solid var(--border-color);">
+        {% if current_user.role in ['seller', 'delivery'] %}
+            <h4>Update Status</h4>
+            <form method="POST" action="{{ url_for('update_order_status', order_id=order.id) }}" style="display: flex; gap: 1rem; justify-content: center;">
+                <select name="status" class="form-control" style="width: auto;">
+                    <option value="Pending" {% if order.status == 'Pending' %}selected{% endif %}>Pending</option>
+                    <option value="Paid" {% if order.status == 'Paid' %}selected{% endif %}>Paid</option>
+                    <option value="Preparing" {% if order.status == 'Preparing' %}selected{% endif %}>Preparing</option>
+                    <option value="Out for Delivery" {% if order.status == 'Out for Delivery' %}selected{% endif %}>Out for Delivery</option>
+                    <option value="Delivered" {% if order.status == 'Delivered' %}selected{% endif %}>Delivered</option>
+                </select>
+                <button type="submit" class="btn btn-primary">Update</button>
+            </form>
+        {% else %}
+            <p style="font-weight: 500;">Current Status: <span style="color: var(--primary-color);">{{ order.status }}</span></p>
+            {% if order.status == 'Delivered' %}
+                <a href="{{ url_for('food_detail', item_id=order.food_item_id) }}" class="btn btn-primary">Leave a Review</a>
+            {% endif %}
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

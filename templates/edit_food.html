@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="form-container" style="max-width: 600px;">
+    <h2>Edit Dish</h2>
+    <form method="POST" enctype="multipart/form-data">
+        <div class="form-group">
+            <label>Dish Name</label>
+            <input type="text" name="name" class="form-control" value="{{ item.name }}" required>
+        </div>
+        <div class="form-group">
+            <label>Description (Ingredients, preparation method)</label>
+            <textarea name="description" class="form-control" rows="4" required>{{ item.description }}</textarea>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div class="form-group">
+                <label>Price ($)</label>
+                <input type="number" step="0.01" name="price" class="form-control" value="{{ item.price }}" required>
+            </div>
+            <div class="form-group">
+                <label>Quantity Available</label>
+                <input type="number" name="quantity" class="form-control" value="{{ item.quantity }}" required>
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Category</label>
+            <select name="category" class="form-control" required>
+                <option value="vegetarian" {% if item.category == 'vegetarian' %}selected{% endif %}>Vegetarian</option>
+                <option value="non-vegetarian" {% if item.category == 'non-vegetarian' %}selected{% endif %}>Non-Vegetarian</option>
+                <option value="organic" {% if item.category == 'organic' %}selected{% endif %}>Organic</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Update Dish Image</label>
+            <input type="file" name="image_file" class="form-control" accept="image/*">
+            <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.5rem;">OR Paste Image URL:</p>
+            <input type="text" name="image_url" class="form-control" value="{{ item.image_url }}" placeholder="https://...">
+        </div>
+        <button type="submit" class="btn btn-primary" style="width: 100%;">Save Changes</button>
+    </form>
+</div>
+{% endblock %}

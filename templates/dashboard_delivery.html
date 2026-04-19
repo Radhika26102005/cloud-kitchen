@@ -1,0 +1,96 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div style="max-width: 1000px; margin: 0 auto;">
+    <h2>Delivery Dashboard</h2>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-top: 2rem;">
+        
+        <!-- Available Orders -->
+        <div style="background: var(--bg-color); padding: 1.5rem; border-radius: var(--border-radius);">
+            <h3>Available Orders</h3>
+            {% if available_orders %}
+                {% for order in available_orders %}
+                <div style="border: 1px solid var(--border-color); padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+                    <p><strong>Order #{{ order.id }}</strong></p>
+                    <p>Delivery To: {{ order.delivery_address or 'Not specified' }}</p>
+                    <a href="{{ url_for('claim_order', order_id=order.id) }}" class="btn btn-primary" style="display: block; text-align: center;">Claim Order</a>
+                </div>
+                {% endfor %}
+            {% else %}
+                <p>No available orders to deliver right now.</p>
+            {% endif %}
+        </div>
+
+        <!-- My Claimed Orders -->
+        <div style="background: var(--bg-color); padding: 1.5rem; border-radius: var(--border-radius);">
+            <h3>My Claimed Orders</h3>
+            {% if my_orders %}
+                {% for order in my_orders %}
+                <div style="border: 1px solid var(--border-color); padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+                    <p><strong>Order #{{ order.id }}</strong></p>
+                    <p>Delivery To: {{ order.delivery_address or 'Not specified' }}</p>
+                    <p>Status: <strong style="color: var(--primary-color);">{{ order.status }}</strong></p>
+                    <a href="{{ url_for('order_tracking', order_id=order.id) }}" class="btn btn-secondary" style="display: block; text-align: center; margin-bottom: 0.5rem;">Update Status</a>
+                    
+                    {% if order.status == 'Out for Delivery' %}
+                    <button onclick="startSharingLocation({{ order.id }})" class="btn btn-primary" style="display: block; width: 100%;" id="shareBtn-{{ order.id }}">
+                        📍 Share Live Location
+                    </button>
+                    <p id="locStatus-{{ order.id }}" style="font-size: 0.9rem; color: green; display: none; margin-top: 0.5rem;">Location sharing active...</p>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            {% else %}
+                <p>You haven't claimed any orders yet.</p>
+            {% endif %}
+        </div>
+
+    </div>
+</div>
+
+<script>
+    let watchId = null;
+
+    function startSharingLocation(orderId) {
+        if (!navigator.geolocation) {
+            alert('Geolocation is not supported by your browser');
+            return;
+        }
+
+        const btn = document.getElementById('shareBtn-' + orderId);
+        const statusText = document.getElementById('locStatus-' + orderId);
+        
+        if (watchId) {
+            navigator.geolocation.clearWatch(watchId);
+            watchId = null;
+            btn.innerText = '📍 Share Live Location';
+            statusText.style.display = 'none';
+            return;
+        }
+
+        btn.innerText = 'Stop Sharing Location';
+        statusText.style.display = 'block';
+
+        watchId = navigator.geolocation.watchPosition(
+            (position) => {
+                fetch(`/api/update_location/${orderId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        lat: position.coords.latitude,
+                        lng: position.coords.longitude
+                    })
+                }).then(res => res.json()).then(data => {
+                    console.log('Location updated', data);
+                });
+            },
+            (err) => {
+                console.error(err);
+                alert('Error getting location: ' + err.message);
+            },
+            { enableHighAccuracy: true }
+        );
+    }
+</script>
+{% endblock %}

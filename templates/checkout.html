@@ -1,0 +1,129 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="form-container" style="max-width: 600px;">
+    <h2 style="text-align: center;">Secure Checkout</h2>
+    <div style="background: var(--bg-color); border-radius: var(--border-radius); padding: 1.5rem; margin-bottom: 2rem; border-left: 5px solid var(--primary-color);">
+        <h4 style="margin-top: 0; color: var(--text-muted);">Payment Summary</h4>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+            <span>Items Total:</span>
+            <span>${{ "%.2f"|format(item_total) }}</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+            <span>Delivery Fee:</span>
+            <span>${{ "%.2f"|format(delivery_fee) }}</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 1rem; border-bottom: 1px dashed var(--border-color); padding-bottom: 0.5rem;">
+            <span>Platform Service Fee:</span>
+            <span>${{ "%.2f"|format(service_fee) }}</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 1.3rem; color: var(--primary-color);">
+            <span>Grand Total:</span>
+            <span>${{ "%.2f"|format(total) }}</span>
+        </div>
+    </div>
+    
+    <form method="POST">
+        
+        <!-- Delivery Details -->
+        <div style="border-top: 1px solid var(--border-color); padding-top: 1.5rem; margin-top: 1.5rem;">
+            <h4>Delivery Location</h4>
+            
+            <label>Pinpoint Exact Location (Required)</label>
+            <div id="locPickerMap" style="height: 250px; width: 100%; border-radius: 8px; margin-bottom: 1rem; border: 1px solid var(--border-color);"></div>
+            <input type="hidden" name="target_lat" id="target_lat" required>
+            <input type="hidden" name="target_lng" id="target_lng" required>
+            <p id="mapError" style="color: red; font-size: 0.9rem; display: none;">Please click on the map to set your delivery location.</p>
+
+            <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+                <div class="form-group" style="flex: 1;">
+                    <label>Flat/House No., Building</label>
+                    <input type="text" name="flat" class="form-control" required>
+                </div>
+                <div class="form-group" style="flex: 1;">
+                    <label>Street/Area</label>
+                    <input type="text" name="street" class="form-control" required>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Landmark (Optional)</label>
+                <input type="text" name="landmark" class="form-control" placeholder="e.g. Near Apollo Hospital">
+            </div>
+        </div>
+
+        <!-- Mock Payment Fields -->
+        <div style="border-top: 1px solid var(--border-color); padding-top: 1.5rem; margin-top: 1.5rem;">
+            <h4>Payment Details (Secure Transaction)</h4>
+            <div class="form-group">
+                <label>Card Number</label>
+                <input type="text" class="form-control" placeholder="XXXX XXXX XXXX XXXX" required>
+            </div>
+            <div style="display: flex; gap: 1rem;">
+                <div class="form-group" style="flex: 1;">
+                    <label>Expiry</label>
+                    <input type="text" class="form-control" placeholder="MM/YY" required>
+                </div>
+                <div class="form-group" style="flex: 1;">
+                    <label>CVV</label>
+                    <input type="text" class="form-control" placeholder="123" required>
+                </div>
+            </div>
+        </div>
+        
+        <div style="margin: 2rem 0; text-align: center; color: var(--text-muted); font-size: 0.9rem;">
+            🔐 Secure encrypted transaction
+        </div>
+        
+        <button type="submit" class="btn btn-primary" style="width: 100%; font-size: 1.1rem; padding: 1rem;">Pay & Place Order</button>
+    </form>
+</div>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    // Map Picker Logic
+    let pickerMap = L.map('locPickerMap').setView([28.6139, 77.2090], 12); // Default Delhi
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(pickerMap);
+    let pickerMarker = null;
+
+    // Try to get user's current location to center map
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(pos => {
+            const lat = pos.coords.latitude;
+            const lng = pos.coords.longitude;
+            pickerMap.setView([lat, lng], 15);
+        });
+    }
+
+    pickerMap.on('click', function(e) {
+        if (pickerMarker) {
+            pickerMap.removeLayer(pickerMarker);
+        }
+        pickerMarker = L.marker(e.latlng).addTo(pickerMap);
+        document.getElementById('target_lat').value = e.latlng.lat;
+        document.getElementById('target_lng').value = e.latlng.lng;
+        document.getElementById('mapError').style.display = 'none';
+
+        // Reverse Geocoding (Zomato/Swiggy style auto-fill)
+        fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${e.latlng.lat}&lon=${e.latlng.lng}`)
+            .then(res => res.json())
+            .then(data => {
+                if(data && data.address) {
+                    const house = data.address.house_number || data.address.building || '';
+                    const road = data.address.road || data.address.neighbourhood || data.address.suburb || '';
+                    const city = data.address.city || data.address.town || data.address.state || '';
+                    
+                    document.querySelector('input[name="flat"]').value = house;
+                    document.querySelector('input[name="street"]').value = (road + (city ? ', ' + city : '')).trim().replace(/^,/, '');
+                }
+            }).catch(err => console.error("Geocoding failed", err));
+    });
+
+    document.querySelector('form').addEventListener('submit', function(e) {
+        if (!document.getElementById('target_lat').value) {
+            e.preventDefault();
+            document.getElementById('mapError').style.display = 'block';
+        }
+    });
+</script>
+{% endblock %}

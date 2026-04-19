@@ -1,0 +1,481 @@
+import os
+from flask import Flask, render_template, redirect, url_for, request, flash, jsonify
+from flask_login import LoginManager, login_user, login_required, logout_user, current_user
+from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.utils import secure_filename
+from flask_socketio import SocketIO, emit
+import stripe
+from models import db, User, FoodItem, Order, Review, OrderItem
+from sqlalchemy import func
+
+app = Flask(__name__)
+app.config['SECRET_KEY'] = 'super-secret-key-for-cloud-kitchen'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///cloud_kitchen_v3.db'
+app.config['UPLOAD_FOLDER'] = 'static/uploads'
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024 # 16MB max-limit
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+
+db.init_app(app)
+socketio = SocketIO(app)
+stripe.api_key = "sk_test_51Px9..." # Replace with your real Stripe Test Secret Key
+
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+login_manager = LoginManager()
+login_manager.login_view = 'login'
+login_manager.init_app(app)
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
+
+@app.route('/')
+def index():
+    search = request.args.get('search', '')
+    category = request.args.get('category', '')
+    max_price = request.args.get('max_price', type=float)
+    sort_by = request.args.get('sort', '')
+    
+    query = FoodItem.query.filter(FoodItem.quantity > 0)
+    
+    if search:
+        query = query.filter(FoodItem.name.ilike(f'%{search}%'))
+    if category:
+        query = query.filter(FoodItem.category == category)
+    if max_price:
+        query = query.filter(FoodItem.price <= max_price)
+        
+    if sort_by == 'price_asc':
+        query = query.order_by(FoodItem.price.asc())
+    elif sort_by == 'price_desc':
+        query = query.order_by(FoodItem.price.desc())
+        
+    items = query.all()
+    
+    # AI-Powered Recommendations (Top rated or recent)
+    recommendations = FoodItem.query.filter(FoodItem.quantity > 0).order_by(func.random()).limit(4).all()
+    
+    return render_template('index.html', food_items=items, recommendations=recommendations)
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        email = request.form.get('email')
+        password = request.form.get('password')
+        user = User.query.filter_by(email=email).first()
+        if user and check_password_hash(user.password, password):
+            login_user(user)
+            if user.role == 'seller':
+                return redirect(url_for('seller_dashboard'))
+            return redirect(url_for('index'))
+        else:
+            flash('Login failed. Check your email and password.', 'danger')
+    return render_template('login.html')
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        username = request.form.get('username')
+        email = request.form.get('email')
+        password = request.form.get('password')
+        role = request.form.get('role')
+        location = request.form.get('location')
+        
+        user = User.query.filter_by(email=email).first()
+        if user:
+            flash('Email address already exists', 'danger')
+            return redirect(url_for('register'))
+            
+        new_user = User(
+            username=username, 
+            email=email, 
+            password=generate_password_hash(password, method='pbkdf2:sha256'), 
+            role=role,
+            location=location
+        )
+        db.session.add(new_user)
+        db.session.commit()
+        return redirect(url_for('login'))
+    return render_template('register.html')
+
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    return redirect(url_for('index'))
+
+@app.route('/agree_to_terms', methods=['POST'])
+@login_required
+def agree_to_terms():
+    if current_user.role == 'seller':
+        current_user.has_agreed_to_terms = True
+        db.session.commit()
+    return jsonify({'success': True})
+
+@app.route('/seller/dashboard')
+@login_required
+def seller_dashboard():
+    if current_user.role != 'seller':
+        return redirect(url_for('index'))
+    items = FoodItem.query.filter_by(seller_id=current_user.id).all()
+    
+    # Analytics
+    total_revenue = db.session.query(func.sum(OrderItem.price * OrderItem.quantity)).\
+        join(FoodItem).filter(FoodItem.seller_id == current_user.id).scalar() or 0
+    
+    popular_dishes = db.session.query(FoodItem.name, func.sum(OrderItem.quantity).label('total_sold')).\
+        join(OrderItem).filter(FoodItem.seller_id == current_user.id).\
+        group_by(FoodItem.id).order_by(func.sum(OrderItem.quantity).desc()).limit(5).all()
+    
+    order_stats = db.session.query(Order.status, func.count(Order.id)).\
+        join(OrderItem).join(FoodItem).filter(FoodItem.seller_id == current_user.id).\
+        group_by(Order.status).all()
+    
+    return render_template('dashboard_seller.html', 
+                           items=items, 
+                           revenue=total_revenue, 
+                           popular=popular_dishes,
+                           stats=order_stats)
+
+@app.route('/seller/add_food', methods=['GET', 'POST'])
+@login_required
+def add_food():
+    if current_user.role != 'seller':
+        return redirect(url_for('index'))
+    if request.method == 'POST':
+        name = request.form.get('name')
+        description = request.form.get('description')
+        price = float(request.form.get('price'))
+        quantity = int(request.form.get('quantity'))
+        category = request.form.get('category')
+        image_url = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&h=500&fit=crop'
+        
+        # Handle File Upload
+        if 'image_file' in request.files:
+            file = request.files['image_file']
+            if file and allowed_file(file.filename):
+                filename = secure_filename(file.filename)
+                # Add timestamp to filename to avoid collisions
+                filename = f"{int(os.path.getmtime('app.py'))}_{filename}"
+                file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+                image_url = url_for('static', filename=f'uploads/{filename}')
+        elif request.form.get('image_url'):
+            image_url = request.form.get('image_url')
+        
+        new_item = FoodItem(
+            seller_id=current_user.id,
+            name=name,
+            description=description,
+            price=price,
+            quantity=quantity,
+            category=category,
+            image_url=image_url
+        )
+        db.session.add(new_item)
+        db.session.commit()
+        return redirect(url_for('seller_dashboard'))
+    return render_template('add_food.html')
+
+@app.route('/seller/edit_food/<int:item_id>', methods=['GET', 'POST'])
+@login_required
+def edit_food(item_id):
+    if current_user.role != 'seller':
+        return redirect(url_for('index'))
+    item = FoodItem.query.get_or_404(item_id)
+    if item.seller_id != current_user.id:
+        return redirect(url_for('seller_dashboard'))
+        
+    if request.method == 'POST':
+        item.name = request.form.get('name')
+        item.description = request.form.get('description')
+        item.price = float(request.form.get('price'))
+        item.quantity = int(request.form.get('quantity'))
+        item.category = request.form.get('category')
+        
+        # Handle File Upload
+        if 'image_file' in request.files:
+            file = request.files['image_file']
+            if file and allowed_file(file.filename):
+                filename = secure_filename(file.filename)
+                filename = f"{int(os.path.getmtime('app.py'))}_{filename}"
+                file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+                item.image_url = url_for('static', filename=f'uploads/{filename}')
+        elif request.form.get('image_url'):
+            item.image_url = request.form.get('image_url')
+        
+        db.session.commit()
+        flash('Dish updated successfully!', 'success')
+        return redirect(url_for('seller_dashboard'))
+    return render_template('edit_food.html', item=item)
+
+@app.route('/seller/delete_food/<int:item_id>', methods=['POST'])
+@login_required
+def delete_food(item_id):
+    if current_user.role != 'seller':
+        return redirect(url_for('index'))
+    item = FoodItem.query.get_or_404(item_id)
+    if item.seller_id == current_user.id:
+        db.session.delete(item)
+        db.session.commit()
+        flash('Dish deleted successfully!', 'success')
+    return redirect(url_for('seller_dashboard'))
+
+@app.route('/food/<int:item_id>', methods=['GET', 'POST'])
+def food_detail(item_id):
+    item = FoodItem.query.get_or_404(item_id)
+    reviews = Review.query.filter_by(food_item_id=item.id).all()
+    
+    if request.method == 'POST' and current_user.is_authenticated:
+        if 'rating' in request.form:
+            # Submit review
+            rating = int(request.form.get('rating'))
+            comment = request.form.get('comment')
+            image_url = None
+            
+            if 'review_image' in request.files:
+                file = request.files['review_image']
+                if file and allowed_file(file.filename):
+                    filename = secure_filename(file.filename)
+                    filename = f"rev_{int(os.path.getmtime('app.py'))}_{filename}"
+                    file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+                    image_url = url_for('static', filename=f'uploads/{filename}')
+            
+            review = Review(
+                customer_id=current_user.id, 
+                food_item_id=item.id, 
+                rating=rating, 
+                comment=comment,
+                image_url=image_url
+            )
+            db.session.add(review)
+            db.session.commit()
+            flash('Review added successfully!', 'success')
+            return redirect(url_for('food_detail', item_id=item.id))
+            
+    return render_template('food_detail.html', item=item, reviews=reviews)
+
+@app.route('/cart/add/<int:item_id>', methods=['POST'])
+@login_required
+def add_to_cart(item_id):
+    if current_user.role != 'customer':
+        return jsonify({'error': 'Only customers can add to cart'}), 403
+    quantity = int(request.form.get('quantity', 1))
+    
+    existing = CartItem.query.filter_by(customer_id=current_user.id, food_item_id=item_id).first()
+    if existing:
+        existing.quantity += quantity
+    else:
+        new_cart_item = CartItem(customer_id=current_user.id, food_item_id=item_id, quantity=quantity)
+        db.session.add(new_cart_item)
+    db.session.commit()
+    flash('Added to cart!', 'success')
+    return redirect(url_for('index'))
+
+@app.route('/cart')
+@login_required
+def view_cart():
+    if current_user.role != 'customer':
+        return redirect(url_for('index'))
+    cart_items = CartItem.query.filter_by(customer_id=current_user.id).all()
+    total = sum(item.quantity * FoodItem.query.get(item.food_item_id).price for item in cart_items)
+    
+    detailed_items = []
+    for c in cart_items:
+        f = FoodItem.query.get(c.food_item_id)
+        detailed_items.append({'cart_item': c, 'food': f, 'subtotal': c.quantity * f.price})
+        
+    return render_template('cart.html', items=detailed_items, total=total)
+
+@app.route('/cart/remove/<int:cart_id>', methods=['POST'])
+@login_required
+def remove_from_cart(cart_id):
+    c = CartItem.query.get_or_404(cart_id)
+    if c.customer_id == current_user.id:
+        db.session.delete(c)
+        db.session.commit()
+    return redirect(url_for('view_cart'))
+
+@app.route('/checkout', methods=['GET', 'POST'])
+@login_required
+def checkout():
+    if current_user.role != 'customer':
+        flash('Only customers can place orders.', 'warning')
+        return redirect(url_for('index'))
+        
+    cart_items = CartItem.query.filter_by(customer_id=current_user.id).all()
+    if not cart_items:
+        flash('Your cart is empty', 'warning')
+        return redirect(url_for('index'))
+        
+    item_total = sum(item.quantity * FoodItem.query.get(item.food_item_id).price for item in cart_items)
+    delivery_fee = 5.0
+    service_fee = 2.0
+    total = item_total + delivery_fee + service_fee
+    platform_commission = item_total * 0.20 # 20% commission on food
+        
+    if request.method == 'POST':
+        # Create Stripe Checkout Session
+        try:
+            flat = request.form.get('flat', '')
+            street = request.form.get('street', '')
+            landmark = request.form.get('landmark', '')
+            delivery_address = f"{flat}, {street}" + (f", near {landmark}" if landmark else "")
+            target_lat = request.form.get('target_lat')
+            target_lng = request.form.get('target_lng')
+
+            # Create session
+            checkout_session = stripe.checkout.Session.create(
+                payment_method_types=['card'],
+                line_items=[{
+                    'price_data': {
+                        'currency': 'usd',
+                        'unit_amount': int(total * 100),
+                        'product_data': {'name': 'Cloud Kitchen Order'},
+                    },
+                    'quantity': 1,
+                }],
+                mode='payment',
+                success_url=url_for('payment_success', _external=True) + 
+                            f"?lat={target_lat}&lng={target_lng}&addr={delivery_address}",
+                cancel_url=url_for('checkout', _external=True),
+            )
+            return redirect(checkout_session.url, code=303)
+        except Exception as e:
+            flash(f"Payment Error: {str(e)}", "danger")
+            return redirect(url_for('checkout'))
+
+    return render_template('checkout.html', total=total, item_total=item_total, delivery_fee=delivery_fee, service_fee=service_fee)
+
+@app.route('/payment_success')
+@login_required
+def payment_success():
+    cart_items = CartItem.query.filter_by(customer_id=current_user.id).all()
+    if not cart_items:
+        return redirect(url_for('index'))
+
+    item_total = sum(item.quantity * FoodItem.query.get(item.food_item_id).price for item in cart_items)
+    delivery_fee = 5.0
+    service_fee = 2.0
+    total = item_total + delivery_fee + service_fee
+    platform_commission = item_total * 0.20
+
+    new_order = Order(
+        customer_id=current_user.id,
+        total_amount=total,
+        delivery_fee=delivery_fee,
+        service_fee=service_fee,
+        platform_commission=platform_commission,
+        status='Paid',
+        delivery_address=request.args.get('addr'),
+        delivery_target_lat=float(request.args.get('lat')) if request.args.get('lat') else None,
+        delivery_target_lng=float(request.args.get('lng')) if request.args.get('lng') else None
+    )
+    db.session.add(new_order)
+    db.session.flush()
+
+    for c in cart_items:
+        f = FoodItem.query.get(c.food_item_id)
+        oi = OrderItem(order_id=new_order.id, food_item_id=f.id, quantity=c.quantity, price=f.price)
+        f.quantity -= c.quantity
+        db.session.add(oi)
+        db.session.delete(c)
+
+    db.session.commit()
+    flash('Payment successful! Order placed.', 'success')
+    return redirect(url_for('order_tracking', order_id=new_order.id))
+
+@app.route('/orders')
+@login_required
+def orders():
+    if current_user.role == 'customer':
+        orders = Order.query.filter_by(customer_id=current_user.id).order_by(Order.id.desc()).all()
+    elif current_user.role == 'seller':
+        orders_q = Order.query.join(OrderItem).join(FoodItem).filter(FoodItem.seller_id == current_user.id).all()
+        orders = list(set(orders_q))
+        orders.sort(key=lambda x: x.id, reverse=True)
+    else:
+        orders = Order.query.order_by(Order.id.desc()).all()
+    return render_template('orders.html', orders=orders)
+
+@app.route('/order_tracking/<int:order_id>')
+@login_required
+def order_tracking(order_id):
+    order = Order.query.get_or_404(order_id)
+    if current_user.role == 'customer' and order.customer_id != current_user.id:
+        return redirect(url_for('index'))
+    return render_template('order_tracking.html', order=order)
+
+@app.route('/update_order_status/<int:order_id>', methods=['POST'])
+@login_required
+def update_order_status(order_id):
+    order = Order.query.get_or_404(order_id)
+    if current_user.role in ['seller', 'delivery']:
+        new_status = request.form.get('status')
+        order.status = new_status
+        db.session.commit()
+        
+        # Emit real-time notification
+        socketio.emit('status_change', {
+            'order_id': order.id,
+            'status': new_status,
+            'customer_id': order.customer_id
+        }, room=f'user_{order.customer_id}')
+        
+    return redirect(url_for('orders'))
+
+@app.route('/delivery/dashboard')
+@login_required
+def delivery_dashboard():
+    if current_user.role != 'delivery':
+        return redirect(url_for('index'))
+    # Orders available for delivery or already claimed by this user
+    available_orders = Order.query.filter_by(delivery_person_id=None, status='Preparing').all()
+    my_orders = Order.query.filter_by(delivery_person_id=current_user.id).all()
+    return render_template('dashboard_delivery.html', available_orders=available_orders, my_orders=my_orders)
+
+@app.route('/delivery/claim/<int:order_id>')
+@login_required
+def claim_order(order_id):
+    if current_user.role != 'delivery':
+        return redirect(url_for('index'))
+    order = Order.query.get_or_404(order_id)
+    if order.delivery_person_id is None:
+        order.delivery_person_id = current_user.id
+        order.status = 'Out for Delivery'
+        db.session.commit()
+        flash('Order claimed successfully!', 'success')
+    return redirect(url_for('delivery_dashboard'))
+
+@app.route('/api/update_location/<int:order_id>', methods=['POST'])
+@login_required
+def update_location(order_id):
+    if current_user.role != 'delivery':
+        return jsonify({'error': 'Unauthorized'}), 403
+    order = Order.query.get_or_404(order_id)
+    if order.delivery_person_id != current_user.id:
+        return jsonify({'error': 'Unauthorized'}), 403
+        
+    data = request.json
+    order.lat = data.get('lat')
+    order.lng = data.get('lng')
+    db.session.commit()
+    return jsonify({'success': True})
+
+@app.route('/api/get_location/<int:order_id>')
+def get_location(order_id):
+    order = Order.query.get_or_404(order_id)
+    return jsonify({
+        'lat': order.lat,
+        'lng': order.lng,
+        'target_lat': order.delivery_target_lat,
+        'target_lng': order.delivery_target_lng,
+        'status': order.status,
+        'delivery_address': order.delivery_address
+    })
+
+if __name__ == '__main__':
+    with app.app_context():
+        db.create_all()
+    socketio.run(app, debug=True, host='0.0.0.0')

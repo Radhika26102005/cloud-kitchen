@@ -1,0 +1,15 @@
+{
+  "name": "Cloud Kitchen",
+  "short_name": "Kitchen",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#ff5200",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/3565/3565418.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

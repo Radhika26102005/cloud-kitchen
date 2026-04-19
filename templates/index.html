@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="hero" style="text-align: center; margin-bottom: 3rem;">
+    <h1 style="font-size: 2.5rem; margin-bottom: 1rem;">Fresh, Healthy, Home-Cooked</h1>
+    <p style="color: var(--text-muted); font-size: 1.1rem; max-width: 600px; margin: 0 auto;">
+        Discover delicious meals prepared by passionate home cooks in your neighborhood.
+    </p>
+</div>
+
+<form class="filter-bar" method="GET" action="{{ url_for('index') }}">
+    <input type="text" name="search" class="form-control search-input" placeholder="Search for delicious food..." value="{{ request.args.get('search', '') }}">
+    
+    <select name="category" class="form-control" style="width: auto;">
+        <option value="">All Categories</option>
+        <option value="organic" {% if request.args.get('category') == 'organic' %}selected{% endif %}>Organic</option>
+        <option value="vegetarian" {% if request.args.get('category') == 'vegetarian' %}selected{% endif %}>Vegetarian</option>
+        <option value="non-vegetarian" {% if request.args.get('category') == 'non-vegetarian' %}selected{% endif %}>Non-Vegetarian</option>
+    </select>
+
+    <input type="number" name="max_price" class="form-control" placeholder="Max Price ($)" value="{{ request.args.get('max_price', '') }}" style="width: 130px;">
+    
+    <select name="sort" class="form-control" style="width: auto;">
+        <option value="">Sort By</option>
+        <option value="price_asc" {% if request.args.get('sort') == 'price_asc' %}selected{% endif %}>Price: Low to High</option>
+        <option value="price_desc" {% if request.args.get('sort') == 'price_desc' %}selected{% endif %}>Price: High to Low</option>
+    </select>
+
+    <button type="submit" class="btn btn-primary" style="padding: 0.8rem 2rem;">Apply Filters</button>
+</form>
+
+<!-- Recommended Section -->
+{% if recommendations %}
+<div style="margin-bottom: 4rem;">
+    <h2 style="margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem;">
+        ✨ Recommended for You
+    </h2>
+    <div style="display: flex; gap: 1.5rem; overflow-x: auto; padding-bottom: 1rem; scroll-snap-type: x mandatory;">
+        {% for item in recommendations %}
+        <div class="food-card" style="min-width: 280px; flex: 0 0 auto; scroll-snap-align: start;">
+            <img src="{{ item.image_url }}" alt="{{ item.name }}" class="food-img" style="height: 150px;">
+            <div class="food-info">
+                <h4 style="margin: 0;">{{ item.name }}</h4>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.5rem;">
+                    <span class="food-price" style="font-size: 1.1rem;">${{ "%.2f"|format(item.price) }}</span>
+                    <a href="{{ url_for('food_detail', item_id=item.id) }}" class="btn btn-primary" style="padding: 0.3rem 0.8rem; font-size: 0.8rem;">View</a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<h2 style="margin-bottom: 1.5rem;">Explore All Dishes</h2>
+<div class="food-grid">
+    {% for item in food_items %}
+    <div class="food-card">
+        <img src="{{ item.image_url }}" alt="{{ item.name }}" class="food-img">
+        <div class="food-info">
+            <div style="display: flex; justify-content: space-between; align-items: start;">
+                <h3 class="food-title">{{ item.name }}</h3>
+                <span class="badge">{{ item.category|capitalize }}</span>
+            </div>
+            <p class="food-desc">{{ item.description[:100] }}...</p>
+            <div class="food-meta">
+                <span class="food-price">${{ "%.2f"|format(item.price) }}</span>
+                <a href="{{ url_for('food_detail', item_id=item.id) }}" class="btn btn-primary">View Details</a>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <p style="grid-column: 1/-1; text-align: center; color: var(--text-muted);">No food items found matching your criteria.</p>
+    {% endfor %}
+</div>
+{% endblock %}

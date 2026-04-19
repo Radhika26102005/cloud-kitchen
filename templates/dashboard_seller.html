@@ -1,0 +1,132 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+    <h2>My Kitchen Dashboard</h2>
+    <a href="{{ url_for('add_food') }}" class="btn btn-primary">+ Add New Dish</a>
+</div>
+
+<!-- Analytics Section -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; margin-bottom: 3rem;">
+    <div style="background: white; padding: 1.5rem; border-radius: var(--border-radius); box-shadow: var(--shadow); border-top: 5px solid var(--primary-color);">
+        <p style="color: var(--text-muted); margin: 0; font-size: 0.9rem;">Total Revenue</p>
+        <h2 style="margin: 0.5rem 0 0 0; color: var(--text-main);">${{ "%.2f"|format(revenue) }}</h2>
+    </div>
+    <div style="background: white; padding: 1.5rem; border-radius: var(--border-radius); box-shadow: var(--shadow); border-top: 5px solid #2ecc71;">
+        <p style="color: var(--text-muted); margin: 0; font-size: 0.9rem;">Active Dishes</p>
+        <h2 style="margin: 0.5rem 0 0 0; color: var(--text-main);">{{ items|length }}</h2>
+    </div>
+    <div style="background: white; padding: 1.5rem; border-radius: var(--border-radius); box-shadow: var(--shadow); border-top: 5px solid #3498db;">
+        <p style="color: var(--text-muted); margin: 0; font-size: 0.9rem;">Popularity Score</p>
+        <h2 style="margin: 0.5rem 0 0 0; color: var(--text-main);">{{ popular|length }} Dishes Sold</h2>
+    </div>
+</div>
+
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 3rem;">
+    <div style="background: white; padding: 2rem; border-radius: var(--border-radius); box-shadow: var(--shadow);">
+        <h3>Popular Dishes</h3>
+        <canvas id="popularChart"></canvas>
+    </div>
+    <div style="background: white; padding: 2rem; border-radius: var(--border-radius); box-shadow: var(--shadow);">
+        <h3>Order Distribution</h3>
+        <canvas id="statusChart"></canvas>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    const popCtx = document.getElementById('popularChart').getContext('2d');
+    new Chart(popCtx, {
+        type: 'bar',
+        data: {
+            labels: [{% for name, sold in popular %}'{{ name }}',{% endfor %}],
+            datasets: [{
+                label: 'Portions Sold',
+                data: [{% for name, sold in popular %}{{ sold }},{% endfor %}],
+                backgroundColor: '#ff5200'
+            }]
+        }
+    });
+
+    const statusCtx = document.getElementById('statusChart').getContext('2d');
+    new Chart(statusCtx, {
+        type: 'pie',
+        data: {
+            labels: [{% for status, count in stats %}'{{ status }}',{% endfor %}],
+            datasets: [{
+                data: [{% for status, count in stats %}{{ count }},{% endfor %}],
+                backgroundColor: ['#ff5200', '#2ecc71', '#3498db', '#f1c40f', '#e74c3c']
+            }]
+        }
+    });
+</script>
+
+<h3>My Menu</h3>
+
+<div class="food-grid">
+    {% for item in items %}
+    <div class="food-card">
+        <img src="{{ item.image_url }}" alt="{{ item.name }}" class="food-img">
+        <div class="food-info">
+            <h3 class="food-title">{{ item.name }}</h3>
+            <p class="food-desc">Stock: {{ item.quantity }} portions available</p>
+            <div class="food-meta">
+                <span class="food-price">${{ "%.2f"|format(item.price) }}</span>
+                <span class="badge">{{ item.category }}</span>
+            </div>
+            <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+                <a href="{{ url_for('edit_food', item_id=item.id) }}" class="btn btn-secondary" style="flex: 1; text-align: center; padding: 0.5rem;">Edit</a>
+                <form method="POST" action="{{ url_for('delete_food', item_id=item.id) }}" style="flex: 1; margin: 0;">
+                    <button type="submit" class="btn btn-primary" style="width: 100%; padding: 0.5rem; background-color: #ef4444; border: none;">Delete</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <p>You haven't added any food items yet.</p>
+    {% endfor %}
+</div>
+<!-- Terms & Conditions Modal -->
+{% if not current_user.has_agreed_to_terms %}
+<div id="termsModal" style="position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 2rem;">
+    <div style="background: white; width: 100%; max-width: 600px; border-radius: var(--border-radius); padding: 2.5rem; max-height: 80vh; overflow-y: auto; box-shadow: 0 20px 50px rgba(0,0,0,0.3);">
+        <h2 style="color: var(--primary-color); margin-top: 0;">Cloud Kitchen Merchant Agreement</h2>
+        <p style="color: var(--text-muted); line-height: 1.6;">Welcome to the Cloud Kitchen Partner Network. To ensure the highest quality of service for our customers, all home cooks must agree to the following professional terms (Zomato/Swiggy standard):</p>
+        
+        <div style="background: var(--bg-color); padding: 1.5rem; border-radius: 8px; font-size: 0.9rem; margin: 1.5rem 0; height: 200px; overflow-y: scroll; border: 1px solid var(--border-color);">
+            <p><strong>1. Food Quality & Hygiene:</strong> I agree to maintain the highest standards of cleanliness in my kitchen as per FSSAI guidelines. All ingredients must be fresh and within expiry.</p>
+            <p><strong>2. Commission:</strong> I understand that the platform takes a 20% commission on the food total of every order to cover marketing and technology costs.</p>
+            <p><strong>3. Order Fulfillment:</strong> I agree to mark orders as "Ready for Pickup" within 20-30 minutes of receiving them.</p>
+            <p><strong>4. Packaging:</strong> I will use eco-friendly and spill-proof packaging to ensure food arrives safely.</p>
+            <p><strong>5. Liability:</strong> I am solely responsible for the safety and ingredients of the food provided.</p>
+        </div>
+
+        <div style="display: flex; gap: 1rem; align-items: center; margin-bottom: 2rem;">
+            <input type="checkbox" id="agreeCheckbox" style="width: 20px; height: 20px;">
+            <label for="agreeCheckbox" style="font-weight: 600;">I have read and agree to the Merchant Terms and Conditions.</label>
+        </div>
+
+        <button id="agreeBtn" class="btn btn-primary" style="width: 100%; padding: 1rem; font-size: 1.1rem;" disabled>Accept & Start Selling</button>
+    </div>
+</div>
+
+<script>
+    const checkbox = document.getElementById('agreeCheckbox');
+    const btn = document.getElementById('agreeBtn');
+    
+    checkbox.addEventListener('change', () => {
+        btn.disabled = !checkbox.checked;
+    });
+
+    btn.addEventListener('click', () => {
+        fetch('{{ url_for("agree_to_terms") }}', {method: 'POST'})
+            .then(res => res.json())
+            .then(data => {
+                if(data.success) {
+                    document.getElementById('termsModal').style.display = 'none';
+                }
+            });
+    });
+</script>
+{% endif %}
+{% endblock %}
