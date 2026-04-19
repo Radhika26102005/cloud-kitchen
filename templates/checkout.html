@@ -75,6 +75,18 @@
         </div>
         
         <button type="submit" class="btn btn-primary" style="width: 100%; font-size: 1.1rem; padding: 1rem;">Pay & Place Order</button>
+        
+        <div style="margin-top: 1rem;">
+            <button type="submit" 
+                    formaction="{{ url_for('debug_checkout_bypass') }}" 
+                    class="btn btn-secondary" 
+                    style="width: 100%; font-size: 0.9rem; padding: 0.8rem; border-color: #6c757d; color: #6c757d !important; background: transparent;">
+                ⚡ Developer Bypass (Skip Payment)
+            </button>
+            <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.5rem; text-align: center;">
+                Use this to test the app without a Stripe account.
+            </p>
+        </div>
     </form>
 </div>
 

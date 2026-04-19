@@ -357,6 +357,55 @@ def checkout():
 
     return render_template('checkout.html', total=total, item_total=item_total, delivery_fee=delivery_fee, service_fee=service_fee)
 
+@app.route('/checkout/debug_bypass', methods=['POST'])
+@login_required
+def debug_checkout_bypass():
+    """Developer Bypass: Create order without Stripe"""
+    cart_items = CartItem.query.filter_by(customer_id=current_user.id).all()
+    if not cart_items:
+        return redirect(url_for('index'))
+
+    # Same logic as payment_success
+    item_total = sum(item.quantity * FoodItem.query.get(item.food_item_id).price for item in cart_items)
+    delivery_fee = 5.0
+    service_fee = 2.0
+    total = item_total + delivery_fee + service_fee
+    platform_commission = item_total * 0.20
+    
+    seller_earnings = item_total - platform_commission
+    delivery_earnings = delivery_fee
+
+    flat = request.form.get('flat', 'Dev House')
+    street = request.form.get('street', 'Bypass St')
+    delivery_address = f"{flat}, {street}"
+
+    new_order = Order(
+        customer_id=current_user.id,
+        total_amount=total,
+        delivery_fee=delivery_fee,
+        service_fee=service_fee,
+        platform_commission=platform_commission,
+        seller_earnings=seller_earnings,
+        delivery_earnings=delivery_earnings,
+        status='Paid',
+        delivery_address=delivery_address,
+        delivery_target_lat=float(request.form.get('target_lat', 0)),
+        delivery_target_lng=float(request.form.get('target_lng', 0))
+    )
+    db.session.add(new_order)
+    db.session.flush()
+
+    for c in cart_items:
+        f = FoodItem.query.get(c.food_item_id)
+        oi = OrderItem(order_id=new_order.id, food_item_id=f.id, quantity=c.quantity, price=f.price)
+        f.quantity -= c.quantity
+        db.session.add(oi)
+        db.session.delete(c)
+
+    db.session.commit()
+    flash('Developer Bypass: Order created successfully!', 'info')
+    return redirect(url_for('order_tracking', order_id=new_order.id))
+
 @app.route('/payment_success')
 @login_required
 def payment_success():
