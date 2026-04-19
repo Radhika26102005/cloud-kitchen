@@ -25,10 +25,18 @@
         <div class="form-group">
             <label>Category</label>
             <select name="category" class="form-control" required>
-                <option value="vegetarian">Vegetarian</option>
-                <option value="non-vegetarian">Non-Vegetarian</option>
-                <option value="organic">Organic</option>
+                <option value="Home-Cooked">Home-Cooked</option>
+                <option value="Organic">Organic</option>
+                <option value="Desserts">Desserts</option>
+                <option value="Beverages">Beverages</option>
             </select>
+        </div>
+        <div class="form-group">
+            <label>Dietary Type</label>
+            <div style="display: flex; gap: 1rem; align-items: center;">
+                <input type="radio" name="is_veg" value="true" checked id="veg"> <label for="veg" style="margin: 0;">Vegetarian (Green Dot)</label>
+                <input type="radio" name="is_veg" value="false" id="non-veg"> <label for="non-veg" style="margin: 0;">Non-Veg (Red Dot)</label>
+            </div>
         </div>
         <div class="form-group">
             <label>Upload Dish Image (Recommended)</label>

@@ -11,21 +11,14 @@
 <form class="filter-bar" method="GET" action="{{ url_for('index') }}">
     <input type="text" name="search" class="form-control search-input" placeholder="Search for delicious food..." value="{{ request.args.get('search', '') }}">
     
-    <select name="category" class="form-control" style="width: auto;">
-        <option value="">All Categories</option>
-        <option value="organic" {% if request.args.get('category') == 'organic' %}selected{% endif %}>Organic</option>
-        <option value="vegetarian" {% if request.args.get('category') == 'vegetarian' %}selected{% endif %}>Vegetarian</option>
-        <option value="non-vegetarian" {% if request.args.get('category') == 'non-vegetarian' %}selected{% endif %}>Non-Vegetarian</option>
+    <select name="is_veg" class="form-control" style="width: auto;">
+        <option value="">Dietary (All)</option>
+        <option value="true" {% if request.args.get('is_veg') == 'true' %}selected{% endif %}>Veg Only</option>
+        <option value="false" {% if request.args.get('is_veg') == 'false' %}selected{% endif %}>Non-Veg Only</option>
     </select>
 
     <input type="number" name="max_price" class="form-control" placeholder="Max Price ($)" value="{{ request.args.get('max_price', '') }}" style="width: 130px;">
     
-    <select name="sort" class="form-control" style="width: auto;">
-        <option value="">Sort By</option>
-        <option value="price_asc" {% if request.args.get('sort') == 'price_asc' %}selected{% endif %}>Price: Low to High</option>
-        <option value="price_desc" {% if request.args.get('sort') == 'price_desc' %}selected{% endif %}>Price: High to Low</option>
-    </select>
-
     <button type="submit" class="btn btn-primary" style="padding: 0.8rem 2rem;">Apply Filters</button>
 </form>
 
@@ -59,7 +52,12 @@
         <img src="{{ item.image_url }}" alt="{{ item.name }}" class="food-img">
         <div class="food-info">
             <div style="display: flex; justify-content: space-between; align-items: start;">
-                <h3 class="food-title">{{ item.name }}</h3>
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <div style="width: 12px; height: 12px; border: 1px solid {% if item.is_veg %}#27ae60{% else %}#e74c3c{% endif %}; padding: 2px; display: flex; align-items: center; justify-content: center;">
+                        <div style="width: 6px; height: 6px; border-radius: 50%; background: {% if item.is_veg %}#27ae60{% else %}#e74c3c{% endif %};"></div>
+                    </div>
+                    <h3 class="food-title" style="margin: 0;">{{ item.name }}</h3>
+                </div>
                 <span class="badge">{{ item.category|capitalize }}</span>
             </div>
             <p class="food-desc">{{ item.description[:100] }}...</p>

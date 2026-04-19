@@ -1,43 +1,21 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="form-container" style="max-width: 450px; padding: 3.5rem;">
-    <div style="text-align: center; margin-bottom: 2.5rem;">
-        <div style="background: #fff0e8; width: 80px; height: 80px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem; font-size: 2rem; color: var(--primary-color);">
-            <i class="fas fa-user-lock"></i>
-        </div>
-        <h2 style="margin: 0;">Welcome Back</h2>
-        <p style="color: var(--text-muted);">Please enter your details to login</p>
-    </div>
-
+<div class="form-container">
+    <h2 style="text-align: center; margin-bottom: 2rem;">Welcome Back</h2>
     <form method="POST">
         <div class="form-group">
-            <label><i class="fas fa-envelope" style="margin-right: 8px; font-size: 0.9rem;"></i> Email Address</label>
-            <input type="email" name="email" class="form-control" placeholder="your@email.com" required>
+            <label>Email Address</label>
+            <input type="email" name="email" class="form-control" required>
         </div>
         <div class="form-group">
-            <label><i class="fas fa-key" style="margin-right: 8px; font-size: 0.9rem;"></i> Password</label>
-            <input type="password" name="password" class="form-control" placeholder="••••••••" required>
+            <label>Password</label>
+            <input type="password" name="password" class="form-control" required>
         </div>
-        
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-            <label style="font-size: 0.85rem; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; gap: 0.5rem;">
-                <input type="checkbox" style="width: 16px; height: 16px;"> Remember me
-            </label>
-            <a href="#" style="font-size: 0.85rem; color: var(--primary-color); text-decoration: none; font-weight: 600;">Forgot Password?</a>
-        </div>
-
-        <button type="submit" class="btn btn-primary" style="width: 100%; padding: 1rem; font-size: 1.1rem; border-radius: 12px;">Login Securely</button>
+        <button type="submit" class="btn btn-primary" style="width: 100%;">Login</button>
     </form>
-
-    <div style="margin-top: 3rem; text-align: center; border-top: 1px solid var(--border-color); padding-top: 2rem;">
-        <p style="color: var(--text-muted); margin-bottom: 1.5rem;">New to Cloud Kitchen?</p>
-        <div style="display: flex; justify-content: center; gap: 1.5rem;">
-            <a href="{{ url_for('register') }}" title="Register as Customer"><i class="fas fa-hamburger" style="font-size: 1.5rem; color: #4f46e5;"></i></a>
-            <a href="{{ url_for('register') }}" title="Register as Home Cook"><i class="fas fa-hat-chef" style="font-size: 1.5rem; color: #ea580c;"></i></a>
-            <a href="{{ url_for('register') }}" title="Register as Delivery Partner"><i class="fas fa-motorcycle" style="font-size: 1.5rem; color: #10b981;"></i></a>
-        </div>
-        <a href="{{ url_for('register') }}" class="btn btn-secondary" style="width: 100%; margin-top: 1.5rem; border-radius: 12px; font-size: 0.9rem;">Create Free Account</a>
-    </div>
+    <p style="text-align: center; margin-top: 1.5rem; color: var(--text-muted);">
+        Don't have an account? <a href="{{ url_for('register') }}" style="color: var(--primary-color);">Sign up</a>
+    </p>
 </div>
 {% endblock %}

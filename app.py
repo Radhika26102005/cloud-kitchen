@@ -5,15 +5,25 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from flask_socketio import SocketIO, emit
 import stripe
-from models import db, User, FoodItem, Order, Review, OrderItem
+from models import db, User, FoodItem, Order, Review, OrderItem, Notification
 from sqlalchemy import func
 from dotenv import load_dotenv
 
 load_dotenv() # Load variables from .env
 
+def send_notification(user_id, message, msg_type='info'):
+    new_notif = Notification(user_id=user_id, message=message, type=msg_type)
+    db.session.add(new_notif)
+    db.session.commit()
+    # Trigger real-time via SocketIO
+    socketio.emit('new_notification', {'message': message, 'type': msg_type}, room=f'user_{user_id}')
+
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'super-secret-key-for-cloud-kitchen'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///cloud_kitchen_v3.db'
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'super-secret-key-for-cloud-kitchen')
+# Use PostgreSQL on Render, SQLite locally
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///cloud_kitchen_v3.db')
+if app.config['SQLALCHEMY_DATABASE_URI'].startswith("postgres://"):
+    app.config['SQLALCHEMY_DATABASE_URI'] = app.config['SQLALCHEMY_DATABASE_URI'].replace("postgres://", "postgresql://", 1)
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024 # 16MB max-limit
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
@@ -45,13 +55,19 @@ def index():
     category = request.args.get('category', '')
     max_price = request.args.get('max_price', type=float)
     sort_by = request.args.get('sort', '')
+    is_veg = request.args.get('is_veg')
     
-    query = FoodItem.query.filter(FoodItem.quantity > 0)
+    # Only show items from OPEN kitchens
+    query = FoodItem.query.join(User, FoodItem.seller_id == User.id).filter(User.is_open == True, FoodItem.quantity > 0)
     
     if search:
         query = query.filter(FoodItem.name.ilike(f'%{search}%'))
     if category:
         query = query.filter(FoodItem.category == category)
+    if is_veg == 'true':
+        query = query.filter(FoodItem.is_veg == True)
+    if is_veg == 'false':
+        query = query.filter(FoodItem.is_veg == False)
     if max_price:
         query = query.filter(FoodItem.price <= max_price)
         
@@ -148,7 +164,33 @@ def seller_dashboard():
                            popular=popular_dishes,
                            stats=order_stats)
 
-@app.route('/seller/add_food', methods=['GET', 'POST'])
+@app.route('/seller/toggle_status', methods=['POST'])
+@login_required
+def toggle_kitchen_status():
+    if current_user.role == 'seller':
+        current_user.is_open = not current_user.is_open
+        db.session.commit()
+        status = "Open" if current_user.is_open else "Closed"
+        flash(f'Kitchen is now {status}!', 'info')
+    return redirect(url_for('seller_dashboard'))
+
+@app.route('/admin/dashboard')
+@login_required
+def admin_dashboard():
+    if current_user.email != os.getenv('ADMIN_EMAIL', 'admin@cloudkitchen.com'):
+        flash('Unauthorized access', 'danger')
+        return redirect(url_for('index'))
+        
+    total_sales = db.session.query(func.sum(Order.total_amount)).scalar() or 0
+    total_commission = db.session.query(func.sum(Order.platform_commission + Order.service_fee)).scalar() or 0
+    sellers = User.query.filter_by(role='seller').all()
+    recent_orders = Order.query.order_by(Order.id.desc()).limit(10).all()
+    
+    return render_template('dashboard_admin.html', 
+                           sales=total_sales, 
+                           commission=total_commission, 
+                           sellers=sellers, 
+                           orders=recent_orders)
 @login_required
 def add_food():
     if current_user.role != 'seller':
@@ -173,6 +215,8 @@ def add_food():
         elif request.form.get('image_url'):
             image_url = request.form.get('image_url')
         
+        is_veg = request.form.get('is_veg') == 'true'
+        
         new_item = FoodItem(
             seller_id=current_user.id,
             name=name,
@@ -180,6 +224,7 @@ def add_food():
             price=price,
             quantity=quantity,
             category=category,
+            is_veg=is_veg,
             image_url=image_url
         )
         db.session.add(new_item)
@@ -485,6 +530,9 @@ def update_order_status(order_id):
             'status': new_status,
             'customer_id': order.customer_id
         }, room=f'user_{order.customer_id}')
+        
+        # Save to DB Notification
+        send_notification(order.customer_id, f"Your order #{order.id} is now: {new_status}", 'success')
         
     return redirect(url_for('orders'))
 

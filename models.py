@@ -12,6 +12,9 @@ class User(UserMixin, db.Model):
     location = db.Column(db.String(250))
     has_agreed_to_terms = db.Column(db.Boolean, default=False)
     terms_agreed_at = db.Column(db.DateTime)
+    is_open = db.Column(db.Boolean, default=True) # For Sellers
+    is_verified = db.Column(db.Boolean, default=False) # For Sellers
+    profile_image = db.Column(db.String(250), default='https://cdn-icons-png.flaticon.com/512/3135/3135715.png')
 
 class FoodItem(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -21,7 +24,10 @@ class FoodItem(db.Model):
     price = db.Column(db.Float, nullable=False)
     quantity = db.Column(db.Integer, nullable=False)
     category = db.Column(db.String(50), nullable=False) # organic, vegetarian, non-vegetarian
+    is_veg = db.Column(db.Boolean, default=True)
     image_url = db.Column(db.String(250))
+    avg_rating = db.Column(db.Float, default=0.0)
+    total_reviews = db.Column(db.Integer, default=0)
 
 class CartItem(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -65,3 +71,11 @@ class Review(db.Model):
     rating = db.Column(db.Integer, nullable=False)
     comment = db.Column(db.Text)
     image_url = db.Column(db.String(250))
+
+class Notification(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    message = db.Column(db.String(500), nullable=False)
+    type = db.Column(db.String(50)) # info, success, warning
+    is_read = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=db.func.current_timestamp())

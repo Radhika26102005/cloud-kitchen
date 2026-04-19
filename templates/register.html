@@ -1,107 +1,34 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="form-container" style="max-width: 650px;">
-    <div style="text-align: center; margin-bottom: 3rem;">
-        <h2 style="margin: 0;">Join Cloud Kitchen</h2>
-        <p style="color: var(--text-muted);">Choose your journey and start today</p>
-    </div>
-
-    <form method="POST" id="regForm">
-        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 2.5rem;">
-            <!-- Customer Card -->
-            <label style="cursor: pointer;">
-                <input type="radio" name="role" value="customer" style="display: none;" checked>
-                <div class="role-card" onclick="selectRole(this)">
-                    <i class="fas fa-hamburger"></i>
-                    <span>Customer</span>
-                </div>
-            </label>
-            <!-- Seller Card -->
-            <label style="cursor: pointer;">
-                <input type="radio" name="role" value="seller" style="display: none;">
-                <div class="role-card" onclick="selectRole(this)">
-                    <i class="fas fa-hat-chef"></i>
-                    <span>Home Cook</span>
-                </div>
-            </label>
-            <!-- Delivery Card -->
-            <label style="cursor: pointer;">
-                <input type="radio" name="role" value="delivery" style="display: none;">
-                <div class="role-card" onclick="selectRole(this)">
-                    <i class="fas fa-motorcycle"></i>
-                    <span>Delivery</span>
-                </div>
-            </label>
-        </div>
-
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
-            <div class="form-group">
-                <label>Full Name</label>
-                <input type="text" name="username" class="form-control" placeholder="e.g. John Doe" required>
-            </div>
-            <div class="form-group">
-                <label>Email Address</label>
-                <input type="email" name="email" class="form-control" placeholder="name@email.com" required>
-            </div>
-        </div>
-
+<div class="form-container">
+    <h2 style="text-align: center; margin-bottom: 2rem;">Create Account</h2>
+    <form method="POST">
         <div class="form-group">
-            <label>Create Password</label>
-            <input type="password" name="password" class="form-control" placeholder="••••••••" required>
+            <label>Full Name / Username</label>
+            <input type="text" name="username" class="form-control" required>
         </div>
-
         <div class="form-group">
-            <label>Your Primary Location</label>
-            <input type="text" name="location" class="form-control" placeholder="City or Area name" required>
+            <label>Email Address</label>
+            <input type="email" name="email" class="form-control" required>
         </div>
-
-        <button type="submit" class="btn btn-primary" style="width: 100%; padding: 1rem; font-size: 1.1rem; margin-top: 1rem;">Create My Account</button>
+        <div class="form-group">
+            <label>Password</label>
+            <input type="password" name="password" class="form-control" required>
+        </div>
+        <div class="form-group">
+            <label>Location (City or Area)</label>
+            <input type="text" name="location" class="form-control" required>
+        </div>
+        <div class="form-group">
+            <label>I want to...</label>
+            <select name="role" class="form-control" required>
+                <option value="customer">Order Food (Customer)</option>
+                <option value="seller">Sell Food (Home Cook)</option>
+                <option value="delivery">Deliver Food (Partner)</option>
+            </select>
+        </div>
+        <button type="submit" class="btn btn-primary" style="width: 100%;">Create Account</button>
     </form>
-
-    <p style="text-align: center; margin-top: 2rem; color: var(--text-muted);">
-        Already have an account? <a href="{{ url_for('login') }}" style="color: var(--primary-color); font-weight: 700;">Login here</a>
-    </p>
 </div>
-
-<style>
-    .role-card {
-        background: white;
-        border: 2px solid var(--border-color);
-        padding: 1.5rem 1rem;
-        border-radius: 16px;
-        text-align: center;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        display: flex;
-        flex-direction: column;
-        gap: 0.8rem;
-    }
-    .role-card i {
-        font-size: 2rem;
-        color: var(--text-muted);
-    }
-    .role-card span {
-        font-weight: 700;
-        font-size: 0.85rem;
-        color: var(--text-muted);
-    }
-    input[type="radio"]:checked + .role-card {
-        border-color: var(--primary-color);
-        background: #fff0e8;
-        transform: translateY(-5px);
-        box-shadow: 0 10px 20px rgba(255, 82, 0, 0.1);
-    }
-    input[type="radio"]:checked + .role-card i, 
-    input[type="radio"]:checked + .role-card span {
-        color: var(--primary-color);
-    }
-</style>
-
-<script>
-    function selectRole(element) {
-        // Animation effect
-        element.style.transform = "scale(0.95)";
-        setTimeout(() => { element.style.transform = ""; }, 100);
-    }
-</script>
 {% endblock %}

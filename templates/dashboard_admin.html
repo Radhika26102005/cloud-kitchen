@@ -1,0 +1,74 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container" style="max-width: 1200px;">
+    <h2 style="margin-bottom: 2rem;">Platform Command Center (Admin)</h2>
+
+    <!-- High Level Stats -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; margin-bottom: 3rem;">
+        <div style="background: white; padding: 2rem; border-radius: var(--border-radius); box-shadow: var(--shadow); border-top: 5px solid #2ecc71;">
+            <p style="color: var(--text-muted); margin: 0; font-size: 0.9rem;">Total Gross Sales</p>
+            <h2 style="margin: 0.5rem 0 0 0;">${{ "%.2f"|format(sales) }}</h2>
+        </div>
+        <div style="background: white; padding: 2rem; border-radius: var(--border-radius); box-shadow: var(--shadow); border-top: 5px solid var(--primary-color);">
+            <p style="color: var(--text-muted); margin: 0; font-size: 0.9rem;">Platform Revenue (Commissions)</p>
+            <h2 style="margin: 0.5rem 0 0 0; color: var(--primary-color);">${{ "%.2f"|format(commission) }}</h2>
+        </div>
+        <div style="background: white; padding: 2rem; border-radius: var(--border-radius); box-shadow: var(--shadow); border-top: 5px solid #3498db;">
+            <p style="color: var(--text-muted); margin: 0; font-size: 0.9rem;">Active Kitchens</p>
+            <h2 style="margin: 0.5rem 0 0 0;">{{ sellers|length }}</h2>
+        </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+        <!-- Kitchen Management -->
+        <div style="background: white; padding: 2rem; border-radius: var(--border-radius); box-shadow: var(--shadow);">
+            <h3>Kitchen Partners</h3>
+            <table style="width: 100%; border-collapse: collapse; margin-top: 1rem;">
+                <thead>
+                    <tr style="text-align: left; border-bottom: 2px solid var(--border-color);">
+                        <th style="padding: 1rem 0;">Kitchen Name</th>
+                        <th style="padding: 1rem 0;">Status</th>
+                        <th style="padding: 1rem 0;">Verification</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for seller in sellers %}
+                    <tr style="border-bottom: 1px solid var(--border-color);">
+                        <td style="padding: 1rem 0;">{{ seller.username }}</td>
+                        <td style="padding: 1rem 0;">
+                            <span class="badge" style="background: {% if seller.is_open %}#e8f5e9{% else %}#ffebee{% endif %}; color: {% if seller.is_open %}#2e7d32{% else %}#c62828{% endif %};">
+                                {{ 'OPEN' if seller.is_open else 'CLOSED' }}
+                            </span>
+                        </td>
+                        <td style="padding: 1rem 0;">
+                            {% if seller.is_verified %}
+                                <span style="color: #2ecc71;">✅ Verified</span>
+                            {% else %}
+                                <button class="btn btn-secondary" style="padding: 0.3rem 0.8rem; font-size: 0.8rem;">Verify</button>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Recent Activity -->
+        <div style="background: white; padding: 2rem; border-radius: var(--border-radius); box-shadow: var(--shadow);">
+            <h3>Recent Global Orders</h3>
+            <div style="display: grid; gap: 1rem; margin-top: 1rem;">
+                {% for order in orders %}
+                <div style="display: flex; justify-content: space-between; align-items: center; background: var(--bg-color); padding: 1rem; border-radius: 8px;">
+                    <div>
+                        <strong>Order #{{ order.id }}</strong>
+                        <p style="margin: 0; font-size: 0.8rem; color: var(--text-muted);">{{ order.status }}</p>
+                    </div>
+                    <strong>${{ "%.2f"|format(order.total_amount) }}</strong>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
