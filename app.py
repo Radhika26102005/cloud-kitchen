@@ -19,6 +19,9 @@ app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024 # 16MB max-limit
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 
 db.init_app(app)
+with app.app_context():
+    db.create_all()
+
 socketio = SocketIO(app)
 
 # PRO TIP: Move this to a .env file for production security
@@ -493,6 +496,4 @@ def get_location(order_id):
     })
 
 if __name__ == '__main__':
-    with app.app_context():
-        db.create_all()
     socketio.run(app, debug=True, host='0.0.0.0')
