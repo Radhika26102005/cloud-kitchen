@@ -7,6 +7,9 @@ from flask_socketio import SocketIO, emit
 import stripe
 from models import db, User, FoodItem, Order, Review, OrderItem
 from sqlalchemy import func
+from dotenv import load_dotenv
+
+load_dotenv() # Load variables from .env
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'super-secret-key-for-cloud-kitchen'
@@ -17,7 +20,9 @@ ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 
 db.init_app(app)
 socketio = SocketIO(app)
-stripe.api_key = "sk_test_51Px9..." # Replace with your real Stripe Test Secret Key
+
+# PRO TIP: Move this to a .env file for production security
+stripe.api_key = os.getenv('STRIPE_SECRET_KEY', 'sk_test_51Px9XBRp1zG6L2eFm6f6f6f6f6f6f6f6') 
 
 def allowed_file(filename):
     return '.' in filename and \
@@ -111,6 +116,7 @@ def logout():
 def agree_to_terms():
     if current_user.role == 'seller':
         current_user.has_agreed_to_terms = True
+        current_user.terms_agreed_at = db.func.current_timestamp()
         db.session.commit()
     return jsonify({'success': True})
 
@@ -121,9 +127,9 @@ def seller_dashboard():
         return redirect(url_for('index'))
     items = FoodItem.query.filter_by(seller_id=current_user.id).all()
     
-    # Analytics
-    total_revenue = db.session.query(func.sum(OrderItem.price * OrderItem.quantity)).\
-        join(FoodItem).filter(FoodItem.seller_id == current_user.id).scalar() or 0
+    # Analytics - Showing Net Earnings
+    total_revenue = db.session.query(func.sum(Order.seller_earnings)).\
+        join(OrderItem).join(FoodItem).filter(FoodItem.seller_id == current_user.id).scalar() or 0
     
     popular_dishes = db.session.query(FoodItem.name, func.sum(OrderItem.quantity).label('total_sold')).\
         join(OrderItem).filter(FoodItem.seller_id == current_user.id).\
@@ -355,11 +361,14 @@ def payment_success():
     if not cart_items:
         return redirect(url_for('index'))
 
-    item_total = sum(item.quantity * FoodItem.query.get(item.food_item_id).price for item in cart_items)
-    delivery_fee = 5.0
-    service_fee = 2.0
-    total = item_total + delivery_fee + service_fee
-    platform_commission = item_total * 0.20
+    # Financial Logic: Automated Revenue Splitting
+    # Customer pays = Food Total + Delivery Fee + Service Fee
+    # Seller gets = Food Total - 20% Platform Commission
+    # Delivery Rider gets = Delivery Fee
+    # Platform gets = 20% Commission + Service Fee
+    
+    seller_earnings = item_total - platform_commission
+    delivery_earnings = delivery_fee
 
     new_order = Order(
         customer_id=current_user.id,
@@ -367,6 +376,8 @@ def payment_success():
         delivery_fee=delivery_fee,
         service_fee=service_fee,
         platform_commission=platform_commission,
+        seller_earnings=seller_earnings,
+        delivery_earnings=delivery_earnings,
         status='Paid',
         delivery_address=request.args.get('addr'),
         delivery_target_lat=float(request.args.get('lat')) if request.args.get('lat') else None,
@@ -383,7 +394,7 @@ def payment_success():
         db.session.delete(c)
 
     db.session.commit()
-    flash('Payment successful! Order placed.', 'success')
+    flash('Payment successful! Your order has been split between the kitchen and delivery partner.', 'success')
     return redirect(url_for('order_tracking', order_id=new_order.id))
 
 @app.route('/orders')
@@ -433,7 +444,13 @@ def delivery_dashboard():
     # Orders available for delivery or already claimed by this user
     available_orders = Order.query.filter_by(delivery_person_id=None, status='Preparing').all()
     my_orders = Order.query.filter_by(delivery_person_id=current_user.id).all()
-    return render_template('dashboard_delivery.html', available_orders=available_orders, my_orders=my_orders)
+    
+    total_earnings = db.session.query(func.sum(Order.delivery_earnings)).filter_by(delivery_person_id=current_user.id, status='Delivered').scalar() or 0
+    
+    return render_template('dashboard_delivery.html', 
+                           available_orders=available_orders, 
+                           my_orders=my_orders, 
+                           earnings=total_earnings)
 
 @app.route('/delivery/claim/<int:order_id>')
 @login_required

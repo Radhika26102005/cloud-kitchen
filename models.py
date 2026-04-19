@@ -11,6 +11,7 @@ class User(UserMixin, db.Model):
     role = db.Column(db.String(50), nullable=False) # customer, seller, delivery
     location = db.Column(db.String(250))
     has_agreed_to_terms = db.Column(db.Boolean, default=False)
+    terms_agreed_at = db.Column(db.DateTime)
 
 class FoodItem(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -34,7 +35,9 @@ class Order(db.Model):
     total_amount = db.Column(db.Float, nullable=False)
     delivery_fee = db.Column(db.Float, default=0.0)
     service_fee = db.Column(db.Float, default=0.0)
-    platform_commission = db.Column(db.Float, default=0.0)
+    platform_commission = db.Column(db.Float, default=0.0) # Platform's 20% cut from food
+    seller_earnings = db.Column(db.Float, default=0.0)    # What the cook gets
+    delivery_earnings = db.Column(db.Float, default=0.0)  # What the rider gets
     status = db.Column(db.String(50), nullable=False, default='Pending') # Pending, Paid, Preparing, Out for Delivery, Delivered
     delivery_address = db.Column(db.String(250), nullable=True)
     delivery_person_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)

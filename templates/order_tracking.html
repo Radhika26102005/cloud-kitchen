@@ -32,25 +32,41 @@
         let deliveryMarker = null;
         let homeMarker = null;
         
+        // Custom Icons for a "Wow" effect
+        const bikeIcon = L.icon({
+            iconUrl: 'https://cdn-icons-png.flaticon.com/512/3198/3198336.png',
+            iconSize: [40, 40],
+            iconAnchor: [20, 20],
+            popupAnchor: [0, -20]
+        });
+
+        const homeIcon = L.icon({
+            iconUrl: 'https://cdn-icons-png.flaticon.com/512/1239/1239525.png',
+            iconSize: [40, 40],
+            iconAnchor: [20, 40],
+            popupAnchor: [0, -40]
+        });
+        
         function initMap(deliveryLat, deliveryLng, targetLat, targetLng) {
             document.getElementById('mapContainer').style.display = 'block';
             map = L.map('map').setView([targetLat || deliveryLat, targetLng || deliveryLng], 14);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '© OpenStreetMap contributors'
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+                attribution: '© OpenStreetMap contributors © CARTO'
             }).addTo(map);
 
-            // Customer Home Marker (Green or standard icon)
+            // Customer Home Marker
             if (targetLat && targetLng) {
-                homeMarker = L.marker([targetLat, targetLng], {title: "Your Location"}).addTo(map);
-                homeMarker.bindPopup("<b>Delivery Destination</b>").openPopup();
+                homeMarker = L.marker([targetLat, targetLng], {icon: homeIcon}).addTo(map);
+                homeMarker.bindPopup("<b>Delivery Destination</b>");
             }
 
             // Delivery Person Marker
             if (deliveryLat && deliveryLng) {
-                deliveryMarker = L.marker([deliveryLat, deliveryLng], {title: "Delivery Partner"}).addTo(map);
+                deliveryMarker = L.marker([deliveryLat, deliveryLng], {icon: bikeIcon}).addTo(map);
+                deliveryMarker.bindPopup("<b>Your Rider is here!</b>").openPopup();
             }
             
-            document.getElementById('mapStatusText').innerText = "Live tracking active";
+            document.getElementById('mapStatusText').innerHTML = "<span>🟢</span> Live tracking active";
         }
 
         function pollLocation() {
@@ -62,29 +78,30 @@
                             initMap(data.lat, data.lng, data.target_lat, data.target_lng);
                         } else {
                             if (!deliveryMarker) {
-                                deliveryMarker = L.marker([data.lat, data.lng], {title: "Delivery Partner"}).addTo(map);
+                                deliveryMarker = L.marker([data.lat, data.lng], {icon: bikeIcon}).addTo(map);
                             } else {
                                 deliveryMarker.setLatLng([data.lat, data.lng]);
                             }
                             
-                            // Fit bounds to show both customer and delivery partner
+                            // Adjust map to see both
                             if (homeMarker) {
                                 const group = new L.featureGroup([deliveryMarker, homeMarker]);
-                                map.fitBounds(group.getBounds().pad(0.5));
+                                map.fitBounds(group.getBounds().pad(0.3));
                             } else {
                                 map.panTo([data.lat, data.lng]);
                             }
                         }
                     } else if (data.status === 'Delivered' && map) {
-                        document.getElementById('mapStatusText').innerText = "Order Delivered!";
+                        document.getElementById('mapStatusText').innerHTML = "<span>✅</span> Order Delivered!";
+                        if (deliveryMarker) map.removeLayer(deliveryMarker);
                     }
                 })
                 .catch(err => console.error(err));
         }
 
-        // Poll every 5 seconds
-        setInterval(pollLocation, 5000);
-        pollLocation(); // initial call
+        // Poll every 4 seconds for smoother movement
+        setInterval(pollLocation, 4000);
+        pollLocation();
     </script>
 
     <div style="margin-top: 3rem; padding-top: 2rem; border-top: 1px solid var(--border-color);">

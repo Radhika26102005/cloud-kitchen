@@ -2,7 +2,13 @@
 
 {% block content %}
 <div style="max-width: 1000px; margin: 0 auto;">
-    <h2>Delivery Dashboard</h2>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1rem;">
+        <h2>Delivery Dashboard</h2>
+        <div style="background: white; padding: 0.8rem 1.5rem; border-radius: 50px; box-shadow: var(--shadow); border-left: 5px solid #2ecc71;">
+            <span style="color: var(--text-muted); font-size: 0.9rem;">Total Earnings: </span>
+            <strong style="font-size: 1.2rem; color: var(--text-main);">${{ "%.2f"|format(earnings) }}</strong>
+        </div>
+    </div>
 
     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-top: 2rem;">
         

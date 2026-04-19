@@ -1,8 +1,15 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-    <h2>My Kitchen Dashboard</h2>
+<div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2rem;">
+    <div style="display: flex; flex-direction: column;">
+        <h2 style="margin: 0;">My Kitchen Dashboard</h2>
+        {% if current_user.has_agreed_to_terms %}
+        <p style="font-size: 0.8rem; color: #2ecc71; margin-top: 0.5rem;">
+            <i class="fas fa-check-circle"></i> Merchant Agreement Verified (Signed: {{ current_user.terms_agreed_at.strftime('%Y-%m-%d') if current_user.terms_agreed_at else 'Active' }})
+        </p>
+        {% endif %}
+    </div>
     <a href="{{ url_for('add_food') }}" class="btn btn-primary">+ Add New Dish</a>
 </div>
 
