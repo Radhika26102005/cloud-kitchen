@@ -156,10 +156,10 @@ def register():
             mail.send(msg)
             flash('Account created! Please check your email to verify your account.', 'success')
         except Exception as e:
-            # For development: Auto-verify if email fails (uncomment for prod)
-            # new_user.is_verified = True
-            # db.session.commit()
-            flash('Account created, but we could not send a verification email. Please contact support.', 'warning')
+            # AUTO-VERIFY if email fails (Prevents 500 errors during setup)
+            new_user.is_verified = True
+            db.session.commit()
+            flash('Account created! (Email verification skipped for now).', 'info')
             print(f"Mail Error: {e}")
 
         return redirect(url_for('login'))
