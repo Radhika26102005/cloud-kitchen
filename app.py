@@ -9,7 +9,7 @@ from werkzeug.utils import secure_filename
 from flask_socketio import SocketIO, emit
 import stripe
 from models import db, User, FoodItem, Order, Review, OrderItem, Notification
-from sqlalchemy import func
+from sqlalchemy import func, text
 from dotenv import load_dotenv
 from flask_mail import Mail, Message
 from itsdangerous import URLSafeTimedSerializer
@@ -668,6 +668,16 @@ def get_location(order_id):
         'status': order.status,
         'delivery_address': order.delivery_address
     })
+
+@app.route('/secret_debug_error')
+def secret_debug_error():
+    import traceback
+    try:
+        # Test DB connection
+        db.session.execute(text('SELECT 1'))
+        return "Database Connection: OK! <br> Tables: " + str(db.metadata.tables.keys())
+    except Exception as e:
+        return f"<h1>Real Error Found:</h1><pre>{traceback.format_exc()}</pre>"
 
 if __name__ == '__main__':
     socketio.run(app, debug=True, host='0.0.0.0')
