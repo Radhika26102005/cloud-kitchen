@@ -16,10 +16,11 @@
         </a>
         <div class="nav-links">
             <a href="{{ url_for('index') }}">Home</a>
+            {% if current_user.is_authenticated and current_user.email == 'admin@cloudkitchen.com' %}
+                <a href="{{ url_for('admin_dashboard') }}" style="color: #e67e22; font-weight: 800;">👑 Admin</a>
+            {% endif %}
+            
             {% if current_user.is_authenticated %}
-                {% if current_user.email == 'admin@cloudkitchen.com' %}
-                    <a href="{{ url_for('admin_dashboard') }}" style="color: #e67e22; font-weight: 800;">👑 Admin</a>
-                {% endif %}
                 
                 <a href="#" id="notifBell" style="position: relative;">
                     🔔 
