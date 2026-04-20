@@ -105,9 +105,6 @@ def login():
         password = request.form.get('password')
         user = User.query.filter_by(email=email).first()
         if user and check_password_hash(user.password, password):
-            if not user.is_verified:
-                flash('Please verify your email address first!', 'warning')
-                return redirect(url_for('login'))
             login_user(user)
             if user.role == 'seller':
                 return redirect(url_for('seller_dashboard'))
@@ -142,27 +139,11 @@ def register():
             password=generate_password_hash(password, method='pbkdf2:sha256'), 
             role=role,
             location=location,
-            is_verified=False # Start as unverified
+            is_verified=True # Simple: Auto-verified
         )
         db.session.add(new_user)
         db.session.commit()
-
-        # 2. Send Verification Email
-        try:
-            token = serializer.dumps(email, salt='email-confirm')
-            verify_url = url_for('confirm_email', token=token, _external=True)
-            msg = Message('Confirm Your Cloud Kitchen Account',
-                          recipients=[email])
-            msg.body = f'Welcome to Cloud Kitchen! Please verify your account by clicking here: {verify_url}'
-            mail.send(msg)
-            flash('Account created! Please check your email to verify your account.', 'success')
-        except Exception as e:
-            # AUTO-VERIFY if email fails (Prevents 500 errors during setup)
-            new_user.is_verified = True
-            db.session.commit()
-            flash('Account created! (Email verification skipped for now).', 'info')
-            print(f"Mail Error: {e}")
-
+        flash('Account created! You can now log in.', 'success')
         return redirect(url_for('login'))
     return render_template('register.html')
 
