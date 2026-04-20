@@ -205,16 +205,22 @@ def seller_dashboard():
     items = FoodItem.query.filter_by(seller_id=current_user.id).all()
     
     # Analytics - Showing Net Earnings
-    total_revenue = db.session.query(func.sum(Order.seller_earnings)).\
-        join(OrderItem).join(FoodItem).filter(FoodItem.seller_id == current_user.id).scalar() or 0
-    
-    popular_dishes = db.session.query(FoodItem.name, func.sum(OrderItem.quantity).label('total_sold')).\
-        join(OrderItem).filter(FoodItem.seller_id == current_user.id).\
-        group_by(FoodItem.id).order_by(func.sum(OrderItem.quantity).desc()).limit(5).all()
-    
-    order_stats = db.session.query(Order.status, func.count(Order.id)).\
-        join(OrderItem).join(FoodItem).filter(FoodItem.seller_id == current_user.id).\
-        group_by(Order.status).all()
+    try:
+        total_revenue = db.session.query(func.sum(Order.seller_earnings)).\
+            join(OrderItem).join(FoodItem).filter(FoodItem.seller_id == current_user.id).scalar() or 0
+        
+        popular_dishes = db.session.query(FoodItem.name, func.sum(OrderItem.quantity).label('total_sold')).\
+            join(OrderItem).filter(FoodItem.seller_id == current_user.id).\
+            group_by(FoodItem.id).order_by(func.sum(OrderItem.quantity).desc()).limit(5).all()
+        
+        order_stats = db.session.query(Order.status, func.count(Order.id)).\
+            join(OrderItem).join(FoodItem).filter(FoodItem.seller_id == current_user.id).\
+            group_by(Order.status).all()
+    except Exception as e:
+        print(f"Analytics Error: {e}")
+        total_revenue = 0
+        popular_dishes = []
+        order_stats = []
     
     return render_template('dashboard_seller.html', 
                            items=items, 
