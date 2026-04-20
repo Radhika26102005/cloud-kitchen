@@ -1,7 +1,8 @@
 import eventlet
-eventlet.monkey_patch()
+eventlet.monkey_patch(all=True)
 
 import os
+import sys
 from flask import Flask, render_template, redirect, url_for, request, flash, jsonify
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
