@@ -68,37 +68,44 @@ def load_user(user_id):
 
 @app.route('/')
 def index():
-    search = request.args.get('search', '')
-    category = request.args.get('category', '')
-    max_price = request.args.get('max_price', type=float)
-    sort_by = request.args.get('sort', '')
-    is_veg = request.args.get('is_veg')
-    
-    # Only show items from OPEN kitchens
-    query = FoodItem.query.join(User, FoodItem.seller_id == User.id).filter(User.is_open == True, FoodItem.quantity > 0)
-    
-    if search:
-        query = query.filter(FoodItem.name.ilike(f'%{search}%'))
-    if category:
-        query = query.filter(FoodItem.category == category)
-    if is_veg == 'true':
-        query = query.filter(FoodItem.is_veg == True)
-    if is_veg == 'false':
-        query = query.filter(FoodItem.is_veg == False)
-    if max_price:
-        query = query.filter(FoodItem.price <= max_price)
+    try:
+        search = request.args.get('search', '')
+        category = request.args.get('category', '')
+        max_price = request.args.get('max_price', type=float)
+        sort_by = request.args.get('sort', '')
+        is_veg = request.args.get('is_veg')
         
-    if sort_by == 'price_asc':
-        query = query.order_by(FoodItem.price.asc())
-    elif sort_by == 'price_desc':
-        query = query.order_by(FoodItem.price.desc())
+        # Only show items from OPEN kitchens
+        query = FoodItem.query.join(User, FoodItem.seller_id == User.id).filter(User.is_open == True, FoodItem.quantity > 0)
         
-    items = query.all()
-    
-    # AI-Powered Recommendations (Top rated or recent)
-    recommendations = FoodItem.query.filter(FoodItem.quantity > 0).order_by(func.random()).limit(4).all()
-    
-    return render_template('index.html', food_items=items, recommendations=recommendations)
+        if search:
+            query = query.filter(FoodItem.name.ilike(f'%{search}%'))
+        if category:
+            query = query.filter(FoodItem.category == category)
+        if is_veg == 'true':
+            query = query.filter(FoodItem.is_veg == True)
+        if is_veg == 'false':
+            query = query.filter(FoodItem.is_veg == False)
+        if max_price:
+            query = query.filter(FoodItem.price <= max_price)
+            
+        if sort_by == 'price_asc':
+            query = query.order_by(FoodItem.price.asc())
+        elif sort_by == 'price_desc':
+            query = query.order_by(FoodItem.price.desc())
+            
+        items = query.all()
+        
+        # AI-Powered Recommendations (Top rated or recent)
+        recommendations = FoodItem.query.filter(FoodItem.quantity > 0).order_by(func.random()).limit(4).all()
+        
+        return render_template('index.html', food_items=items, recommendations=recommendations)
+    except Exception as e:
+        print(f"Index Error: {e}")
+        # Auto-Repair
+        with app.app_context():
+            db.create_all()
+        return render_template('index.html', food_items=[], recommendations=[], error="System initializing, please refresh.")
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
