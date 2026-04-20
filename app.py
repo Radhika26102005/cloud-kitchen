@@ -46,8 +46,11 @@ mail = Mail(app)
 serializer = URLSafeTimedSerializer(app.config['SECRET_KEY'])
 
 db.init_app(app)
-with app.app_context():
-    db.create_all()
+try:
+    with app.app_context():
+        db.create_all()
+except Exception as e:
+    print(f"Startup DB Error: {e}")
 
 socketio = SocketIO(app)
 
