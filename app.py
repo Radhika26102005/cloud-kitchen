@@ -9,7 +9,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from flask_socketio import SocketIO, emit
 import stripe
-from models import db, User, FoodItem, Order, Review, OrderItem, Notification, CartItem
+from models import db, User, FoodItem, Order, Review, OrderItem, Notification, CartItem, PushSubscription
 from sqlalchemy import func, text
 from dotenv import load_dotenv
 from flask_mail import Mail, Message
