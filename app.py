@@ -614,8 +614,11 @@ def update_order_status(order_id):
             'customer_id': order.customer_id
         }, room=f'user_{order.customer_id}')
         
-        # Save to DB Notification
-        send_notification(order.customer_id, f"Your order #{order.id} is now: {new_status}", 'success')
+        # Save to DB Notification (Wrapped in Try to prevent blocking the status update)
+        try:
+            send_notification(order.customer_id, f"Your order #{order.id} is now: {new_status}", 'success')
+        except Exception as e:
+            print(f"Notification Error: {e}")
         
     if current_user.role == 'delivery':
         return redirect(url_for('delivery_dashboard'))
