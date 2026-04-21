@@ -22,8 +22,32 @@ def send_notification(user_id, message, msg_type='info'):
     new_notif = Notification(user_id=user_id, message=message, type=msg_type)
     db.session.add(new_notif)
     db.session.commit()
-    # Trigger real-time via SocketIO
+    
+    # Emit for real-time (SocketIO)
     socketio.emit('new_notification', {'message': message, 'type': msg_type}, room=f'user_{user_id}')
+    
+    # Send Web Push (Background)
+    from pywebpush import webpush, WebPushException
+    import json
+    
+    subscriptions = PushSubscription.query.filter_by(user_id=user_id).all()
+    for sub in subscriptions:
+        try:
+            webpush(
+                subscription_info={
+                    "endpoint": sub.endpoint,
+                    "keys": {"p256dh": sub.p256dh, "auth": sub.auth}
+                },
+                data=json.dumps({"title": "Cloud Kitchen", "body": message}),
+                vapid_private_key=VAPID_PRIVATE_KEY,
+                vapid_claims={"sub": f"mailto:{VAPID_CLAIM_EMAIL}"}
+            )
+        except WebPushException as ex:
+            print(f"Web Push Error: {ex}")
+            # If the subscription is expired, delete it
+            if ex.response and ex.response.status_code == 410:
+                db.session.delete(sub)
+                db.session.commit()
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'super-secret-key-for-cloud-kitchen')
@@ -45,6 +69,11 @@ app.config['MAIL_USE_TLS'] = True
 app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME')
 app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')
 app.config['MAIL_DEFAULT_SENDER'] = os.getenv('MAIL_DEFAULT_SENDER')
+
+# VAPID Keys for Web Push
+VAPID_PUBLIC_KEY = os.getenv('VAPID_PUBLIC_KEY', 'BMtQCEiMi5RXTf-67i7HyiJC1d-4eEVP_cKTr4MEKcVizTwnbkZXb5bcDJGA61RdiQILqAX9uYSi_296J_ANuqc')
+VAPID_PRIVATE_KEY = os.getenv('VAPID_PRIVATE_KEY')
+VAPID_CLAIM_EMAIL = os.getenv('MAIL_DEFAULT_SENDER', 'admin@cloudkitchen.com')
 
 mail = Mail(app)
 serializer = URLSafeTimedSerializer(app.config['SECRET_KEY'])
@@ -653,6 +682,33 @@ def get_location(order_id):
         'status': order.status,
         'delivery_address': order.delivery_address
     })
+
+@app.route('/api/subscribe', methods=['POST'])
+@login_required
+def subscribe():
+    data = request.json
+    subscription = data.get('subscription')
+    
+    if not subscription:
+        return jsonify({'error': 'No subscription data'}), 400
+        
+    # Check if subscription already exists
+    existing = PushSubscription.query.filter_by(
+        endpoint=subscription['endpoint'], 
+        user_id=current_user.id
+    ).first()
+    
+    if not existing:
+        new_sub = PushSubscription(
+            user_id=current_user.id,
+            endpoint=subscription['endpoint'],
+            p256dh=subscription['keys']['p256dh'],
+            auth=subscription['keys']['auth']
+        )
+        db.session.add(new_sub)
+        db.session.commit()
+        
+    return jsonify({'success': True})
 
 @app.errorhandler(500)
 def handle_500(e):

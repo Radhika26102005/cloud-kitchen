@@ -64,6 +64,35 @@
 
         const socket = io();
         {% if current_user.is_authenticated %}
+            // VAPID Public Key for Web Push
+            const VAPID_PUBLIC_KEY = "{{ config.get('VAPID_PUBLIC_KEY', 'BMtQCEiMi5RXTf-67i7HyiJC1d-4eEVP_cKTr4MEKcVizTwnbkZXb5bcDJGA61RdiQILqAX9uYSi_296J_ANuqc') }}";
+
+            function urlBase64ToUint8Array(base64String) {
+                const padding = '='.repeat((4 - base64String.length % 4) % 4);
+                const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
+                const rawData = window.atob(base64);
+                const outputArray = new Uint8Array(rawData.length);
+                for (let i = 0; i < rawData.length; ++i) {
+                    outputArray[i] = rawData.charCodeAt(i);
+                }
+                return outputArray;
+            }
+
+            if ('serviceWorker' in navigator && 'PushManager' in window) {
+                navigator.serviceWorker.ready.then(registration => {
+                    registration.pushManager.subscribe({
+                        userVisibleOnly: true,
+                        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+                    }).then(subscription => {
+                        fetch('/api/subscribe', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ subscription: subscription.toJSON() })
+                        });
+                    }).catch(err => console.warn('Push subscription failed:', err));
+                });
+            }
+
             socket.on('connect', () => {
                 socket.emit('join', {room: 'user_{{ current_user.id }}'});
             });

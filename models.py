@@ -79,3 +79,10 @@ class Notification(db.Model):
     type = db.Column(db.String(50)) # info, success, warning
     is_read = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
+class PushSubscription(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    endpoint = db.Column(db.Text, nullable=False)
+    p256dh = db.Column(db.String(250), nullable=False)
+    auth = db.Column(db.String(250), nullable=False)
+    created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
