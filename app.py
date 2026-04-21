@@ -640,6 +640,11 @@ def get_location(order_id):
         'delivery_address': order.delivery_address
     })
 
+@app.errorhandler(500)
+def handle_500(e):
+    import traceback
+    return f"<h1>Global Error Caught!</h1><pre>{traceback.format_exc()}</pre>", 500
+
 @app.route('/secret_debug_error')
 def secret_debug_error():
     import traceback
