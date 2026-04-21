@@ -366,6 +366,7 @@ def food_detail(item_id):
 @app.route('/cart/add/<int:item_id>', methods=['POST'])
 @login_required
 def add_to_cart(item_id):
+    from models import CartItem
     if current_user.role != 'customer':
         return jsonify({'error': 'Only customers can add to cart'}), 403
     quantity = int(request.form.get('quantity', 1))
