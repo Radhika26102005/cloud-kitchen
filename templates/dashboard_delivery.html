@@ -28,9 +28,9 @@
             {% endif %}
         </div>
 
-        <!-- My Claimed Orders -->
+        <!-- My Active Orders -->
         <div style="background: var(--bg-color); padding: 1.5rem; border-radius: var(--border-radius);">
-            <h3>My Claimed Orders</h3>
+            <h3>My Active Orders</h3>
             {% if my_orders %}
                 {% for order in my_orders %}
                 <div style="border: 1px solid var(--border-color); padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
@@ -48,7 +48,18 @@
                 </div>
                 {% endfor %}
             {% else %}
-                <p>You haven't claimed any orders yet.</p>
+                <p>You have no active deliveries.</p>
+            {% endif %}
+
+            <h3 style="margin-top: 3rem;">Recent Deliveries</h3>
+            {% if delivered_orders %}
+                {% for order in delivered_orders %}
+                <div style="padding: 0.8rem; background: #f9f9f9; border-radius: 8px; margin-bottom: 0.5rem; border-left: 4px solid #2ecc71;">
+                    <strong>Order #{{ order.id }}</strong> - Delivered ✅
+                </div>
+                {% endfor %}
+            {% else %}
+                <p style="color: var(--text-muted); font-size: 0.9rem;">No completed deliveries yet.</p>
             {% endif %}
         </div>
 

@@ -588,6 +588,8 @@ def update_order_status(order_id):
         # Save to DB Notification
         send_notification(order.customer_id, f"Your order #{order.id} is now: {new_status}", 'success')
         
+    if current_user.role == 'delivery':
+        return redirect(url_for('delivery_dashboard'))
     return redirect(url_for('orders'))
 
 @app.route('/delivery/dashboard')
@@ -595,15 +597,21 @@ def update_order_status(order_id):
 def delivery_dashboard():
     if current_user.role != 'delivery':
         return redirect(url_for('index'))
-    # Orders available for delivery or already claimed by this user
+    # Orders available for delivery
     available_orders = Order.query.filter_by(delivery_person_id=None, status='Preparing').all()
-    my_orders = Order.query.filter_by(delivery_person_id=current_user.id).all()
+    
+    # Active orders (claimed but not delivered)
+    active_orders = Order.query.filter(Order.delivery_person_id == current_user.id, Order.status != 'Delivered').all()
+    
+    # Completed orders
+    delivered_orders = Order.query.filter_by(delivery_person_id=current_user.id, status='Delivered').limit(5).all()
     
     total_earnings = db.session.query(func.sum(Order.delivery_earnings)).filter_by(delivery_person_id=current_user.id, status='Delivered').scalar() or 0
     
     return render_template('dashboard_delivery.html', 
                            available_orders=available_orders, 
-                           my_orders=my_orders, 
+                           my_orders=active_orders, 
+                           delivered_orders=delivered_orders,
                            earnings=total_earnings)
 
 @app.route('/delivery/claim/<int:order_id>')
