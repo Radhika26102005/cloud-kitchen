@@ -76,17 +76,21 @@
         
         <button type="submit" class="btn btn-primary" style="width: 100%; font-size: 1.1rem; padding: 1rem;">Pay & Place Order</button>
         
-        <div style="margin-top: 1rem;">
-            <button type="submit" 
-                    formaction="{{ url_for('debug_checkout_bypass') }}" 
-                    class="btn btn-secondary" 
-                    style="width: 100%; font-size: 0.9rem; padding: 0.8rem; border-color: #6c757d; color: #6c757d !important; background: transparent;">
-                ⚡ Developer Bypass (Skip Payment)
-            </button>
-            <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.5rem; text-align: center;">
-                Use this to test the app without a Stripe account.
-            </p>
+        <!-- Developer Bypass (Only visible to Admin) -->
+        {% if current_user.email == 'admin@cloudkitchen.com' %}
+        <div style="margin-top: 2rem; border-top: 1px dashed #f1c40f; padding-top: 1rem;">
+            <p style="color: #f39c12; font-size: 0.9rem;">🛠️ <strong>Dev Mode:</strong> You can skip payment for testing.</p>
+            <form action="{{ url_for('debug_checkout_bypass') }}" method="POST">
+                <input type="hidden" name="target_lat" id="bypass_lat">
+                <input type="hidden" name="target_lng" id="bypass_lng">
+                <input type="hidden" name="flat" id="bypass_flat">
+                <input type="hidden" name="street" id="bypass_street">
+                <button type="submit" class="btn" style="background: #f1c40f; color: black; width: 100%;">
+                    ⚡ Developer Bypass (Skip Payment)
+                </button>
+            </form>
         </div>
+        {% endif %}
     </form>
 </div>
 

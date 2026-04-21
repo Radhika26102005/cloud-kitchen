@@ -141,6 +141,29 @@
                 }
             });
     });
+    {% if current_user.is_authenticated %}
+        socket.on('connect', () => {
+            socket.emit('join', {room: 'sellers'});
+        });
+
+        socket.on('new_order_alert', (data) => {
+            const toast = document.createElement('div');
+            toast.style = "position: fixed; top: 20px; right: 20px; background: var(--primary-color); color: white; padding: 1rem 2rem; border-radius: 10px; z-index: 9999; box-shadow: 0 4px 15px rgba(0,0,0,0.2); animation: slideIn 0.5s ease-out;";
+            toast.innerHTML = `<strong>🔔 ${data.message}</strong><br>Refreshing your kitchen...`;
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                window.location.reload();
+            }, 3000);
+        });
+    {% endif %}
 </script>
+
+<style>
+@keyframes slideIn {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+</style>
 {% endif %}
 {% endblock %}

@@ -15,6 +15,10 @@ from dotenv import load_dotenv
 from flask_mail import Mail, Message
 from itsdangerous import URLSafeTimedSerializer
 import re
+import time
+import cloudinary
+import cloudinary.uploader
+import cloudinary.api
 
 load_dotenv() # Load variables from .env
 
@@ -58,6 +62,13 @@ if app.config['SQLALCHEMY_DATABASE_URI'].startswith("postgres://"):
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024 # 16MB max-limit
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+
+# Cloudinary Configuration
+cloudinary.config( 
+  cloud_name = os.getenv('CLOUDINARY_CLOUD_NAME'), 
+  api_key = os.getenv('CLOUDINARY_API_KEY'), 
+  api_secret = os.getenv('CLOUDINARY_API_SECRET') 
+)
 
 if not os.path.exists(app.config['UPLOAD_FOLDER']):
     os.makedirs(app.config['UPLOAD_FOLDER'])
@@ -334,10 +345,14 @@ def edit_food(item_id):
         if 'image_file' in request.files:
             file = request.files['image_file']
             if file and allowed_file(file.filename):
-                filename = secure_filename(file.filename)
-                filename = f"{int(os.path.getmtime('app.py'))}_{filename}"
-                file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-                item.image_url = url_for('static', filename=f'uploads/{filename}')
+                try:
+                    upload_result = cloudinary.uploader.upload(file)
+                    item.image_url = upload_result['secure_url']
+                except Exception as e:
+                    print(f"Cloudinary Error: {e}")
+                    filename = secure_filename(f"{int(time.time())}_{file.filename}")
+                    file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+                    item.image_url = url_for('static', filename=f'uploads/{filename}')
         elif request.form.get('image_url'):
             item.image_url = request.form.get('image_url')
         
@@ -531,6 +546,11 @@ def debug_checkout_bypass():
         db.session.delete(c)
 
     db.session.commit()
+    
+    # LIVE ALERT: Notify all sellers and delivery people of new order
+    socketio.emit('new_order_alert', {'message': 'New order placed!'}, room='sellers')
+    socketio.emit('new_order_alert', {'message': 'New delivery available!'}, room='delivery')
+    
     flash('Developer Bypass: Order created successfully!', 'info')
     return redirect(url_for('order_tracking', order_id=new_order.id))
 
@@ -574,6 +594,11 @@ def payment_success():
         db.session.delete(c)
 
     db.session.commit()
+    
+    # LIVE ALERT: Notify all sellers and delivery people of new order
+    socketio.emit('new_order_alert', {'message': 'New order placed!'}, room='sellers')
+    socketio.emit('new_order_alert', {'message': 'New delivery available!'}, room='delivery')
+    
     flash('Payment successful! Your order has been split between the kitchen and delivery partner.', 'success')
     return redirect(url_for('order_tracking', order_id=new_order.id))
 
