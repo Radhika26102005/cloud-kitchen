@@ -64,11 +64,14 @@ app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024 # 16MB max-limit
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 
 # Cloudinary Configuration
-cloudinary.config( 
-  cloud_name = os.getenv('CLOUDINARY_CLOUD_NAME'), 
-  api_key = os.getenv('CLOUDINARY_API_KEY'), 
-  api_secret = os.getenv('CLOUDINARY_API_SECRET') 
-)
+if os.getenv('CLOUDINARY_URL'):
+    cloudinary.config_from_url(os.getenv('CLOUDINARY_URL'))
+else:
+    cloudinary.config( 
+      cloud_name = os.getenv('CLOUDINARY_CLOUD_NAME'), 
+      api_key = os.getenv('CLOUDINARY_API_KEY'), 
+      api_secret = os.getenv('CLOUDINARY_API_SECRET') 
+    )
 
 if not os.path.exists(app.config['UPLOAD_FOLDER']):
     os.makedirs(app.config['UPLOAD_FOLDER'])
