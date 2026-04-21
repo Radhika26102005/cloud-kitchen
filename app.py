@@ -239,6 +239,8 @@ def admin_dashboard():
                            commission=total_commission, 
                            sellers=sellers, 
                            orders=recent_orders)
+
+@app.route('/seller/add_food', methods=['GET', 'POST'])
 @login_required
 def add_food():
     if current_user.role != 'seller':
