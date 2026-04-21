@@ -95,8 +95,10 @@ def index():
         return render_template('index.html', food_items=items, recommendations=recommendations)
         
     except Exception as e:
-        print(f"Index Critical Error: {e}")
-        return "<h1>System Initializing</h1><p>Please refresh in 5 seconds. The database is setting up.</p>"
+        import traceback
+        error_details = traceback.format_exc()
+        print(f"Index Critical Error: {error_details}")
+        return f"<h1>Homepage Snag Found!</h1><p>Please copy this and tell Antigravity:</p><pre>{error_details}</pre>"
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
