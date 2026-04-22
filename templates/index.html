@@ -28,6 +28,9 @@
 </div>
 
 <form class="filter-bar" method="GET" action="{{ url_for('index') }}">
+    <!-- Preserve selected category when form is submitted -->
+    <input type="hidden" name="category" value="{{ request.args.get('category', '') }}">
+
     <input type="text" name="search" class="form-control search-input" placeholder="Search for delicious food..." value="{{ request.args.get('search', '') }}">
     
     <select name="is_veg" class="form-control" style="width: auto;">
@@ -64,7 +67,14 @@
 </div>
 {% endif %}
 
-<h2 style="margin-bottom: 1.5rem;">Explore All Dishes</h2>
+<h2 style="margin-bottom: 1.5rem;">
+    {% if request.args.get('category') %}
+        {% set cat_map = {'tiffin': '📦 Tiffin Service', 'breakfast': '🍳 Breakfast', 'lunch': '🍱 Lunch', 'dinner': '🌙 Dinner', 'sweets': '🍰 Sweets & Desserts', 'beverages': '🥤 Beverages'} %}
+        {{ cat_map.get(request.args.get('category'), request.args.get('category')|capitalize) }}
+    {% else %}
+        🍽️ Explore All Dishes
+    {% endif %}
+</h2>
 <div class="food-grid">
     {% for item in food_items %}
     <div class="food-card">

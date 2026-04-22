@@ -135,6 +135,28 @@
 
 <h3>My Menu</h3>
 
+<!-- Category Filter Tabs for Cook -->
+<div style="display: flex; gap: 0.8rem; flex-wrap: wrap; margin-bottom: 1.5rem;">
+    {% set menu_cats = [
+        ('', '🍽️ All Dishes'),
+        ('tiffin', '📦 Tiffin'),
+        ('breakfast', '🍳 Breakfast'),
+        ('lunch', '🍱 Lunch'),
+        ('dinner', '🌙 Dinner'),
+        ('sweets', '🍰 Sweets'),
+        ('beverages', '🥤 Beverages'),
+        ('other', '🍽️ Other')
+    ] %}
+    {% for slug, label in menu_cats %}
+    <a href="{{ url_for('seller_dashboard') }}{% if slug %}?menu_cat={{ slug }}{% endif %}"
+       style="padding: 0.4rem 1rem; border-radius: 50px; border: 1px solid var(--border-color); text-decoration: none; font-size: 0.85rem; font-weight: 500;
+       {% if request.args.get('menu_cat', '') == slug %}background: var(--primary-color); color: white; border-color: var(--primary-color);
+       {% else %}background: white; color: var(--text-main);{% endif %}">
+        {{ label }}
+    </a>
+    {% endfor %}
+</div>
+
 <div class="food-grid">
     {% for item in items %}
     <div class="food-card">

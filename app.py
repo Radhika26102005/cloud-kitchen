@@ -250,7 +250,11 @@ def agree_to_terms():
 def seller_dashboard():
     if current_user.role != 'seller':
         return redirect(url_for('index'))
-    items = FoodItem.query.filter_by(seller_id=current_user.id).all()
+    menu_cat = request.args.get('menu_cat', '')
+    if menu_cat:
+        items = FoodItem.query.filter_by(seller_id=current_user.id, category=menu_cat).all()
+    else:
+        items = FoodItem.query.filter_by(seller_id=current_user.id).all()
     
     # Analytics - Showing Net Earnings
     try:
