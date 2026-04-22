@@ -75,6 +75,50 @@
     });
 </script>
 
+<h3>Active Kitchen Orders</h3>
+<div style="margin-bottom: 3rem;">
+    {% if orders %}
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem;">
+            {% for order in orders %}
+            <div style="background: white; padding: 1.5rem; border-radius: var(--border-radius); box-shadow: var(--shadow); border-left: 5px solid {% if order.status == 'Paid' %}#f1c40f{% elif order.status == 'Preparing' %}#3498db{% else %}#2ecc71{% endif %};">
+                <div style="display: flex; justify-content: space-between; align-items: start;">
+                    <h4 style="margin: 0;">Order #{{ order.id }}</h4>
+                    <span class="badge" style="background: {% if order.status == 'Paid' %}#f1c40f{% elif order.status == 'Preparing' %}#3498db{% else %}#2ecc71{% endif %}; color: white;">{{ order.status }}</span>
+                </div>
+                
+                <div style="margin: 1rem 0; font-size: 0.9rem;">
+                    {% for item in order.items %}
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 0.3rem;">
+                            <span>{{ item.quantity }}x {{ item.food_item.name }}</span>
+                            <span style="color: var(--text-muted);">₹{{ "%.2f"|format(item.price) }}</span>
+                        </div>
+                    {% endfor %}
+                </div>
+
+                <div style="border-top: 1px solid var(--border-color); padding-top: 1rem; display: flex; gap: 0.5rem;">
+                    {% if order.status == 'Paid' %}
+                        <form method="POST" action="{{ url_for('update_order_status', order_id=order.id) }}" style="flex: 1;">
+                            <input type="hidden" name="status" value="Preparing">
+                            <button type="submit" class="btn btn-primary" style="width: 100%; background: #3498db; border: none;">👨‍🍳 Start Preparing</button>
+                        </form>
+                    {% elif order.status == 'Preparing' %}
+                        <form method="POST" action="{{ url_for('update_order_status', order_id=order.id) }}" style="flex: 1;">
+                            <input type="hidden" name="status" value="Out for Delivery">
+                            <button type="submit" class="btn btn-primary" style="width: 100%; background: #2ecc71; border: none;">✅ Ready for Pickup</button>
+                        </form>
+                    {% endif %}
+                    <a href="{{ url_for('order_tracking', order_id=order.id) }}" class="btn btn-secondary" style="flex: 1; text-align: center; font-size: 0.8rem;">Track</a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div style="background: #f8f9fa; padding: 2rem; border-radius: var(--border-radius); text-align: center; color: var(--text-muted);">
+            <p>🍳 No active orders in the kitchen right now.</p>
+        </div>
+    {% endif %}
+</div>
+
 <h3>My Menu</h3>
 
 <div class="food-grid">

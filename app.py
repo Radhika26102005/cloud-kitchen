@@ -265,11 +265,21 @@ def seller_dashboard():
         popular_dishes = []
         order_stats = []
     
+    # Fetch active kitchen orders
+    try:
+        active_orders = Order.query.join(OrderItem).join(FoodItem).\
+            filter(FoodItem.seller_id == current_user.id, Order.status.in_(['Paid', 'Preparing'])).all()
+        active_orders = list(set(active_orders))
+        active_orders.sort(key=lambda x: x.id, reverse=True)
+    except:
+        active_orders = []
+
     return render_template('dashboard_seller.html', 
                            items=items, 
                            revenue=total_revenue, 
                            popular=popular_dishes,
-                           stats=order_stats)
+                           stats=order_stats,
+                           orders=active_orders)
 
 @app.route('/seller/toggle_status', methods=['POST'])
 @login_required
