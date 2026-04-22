@@ -342,15 +342,16 @@ def add_food():
         category = request.form.get('category')
         image_url = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&h=500&fit=crop'
         
-        # Handle File Upload
+        # Handle File Upload → Cloudinary (Permanent Storage)
         if 'image_file' in request.files:
             file = request.files['image_file']
             if file and allowed_file(file.filename):
-                filename = secure_filename(file.filename)
-                # Add timestamp to filename to avoid collisions
-                filename = f"{int(os.path.getmtime('app.py'))}_{filename}"
-                file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-                image_url = url_for('static', filename=f'uploads/{filename}')
+                try:
+                    upload_result = cloudinary.uploader.upload(file)
+                    image_url = upload_result['secure_url']
+                except Exception as e:
+                    print(f"Cloudinary Upload Error: {e}")
+                    # Fallback: use default image
         elif request.form.get('image_url'):
             image_url = request.form.get('image_url')
         
