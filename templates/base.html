@@ -114,7 +114,7 @@
                 toast.style.right = '20px';
                 toast.style.zIndex = '9999';
                 toast.style.boxShadow = 'var(--shadow)';
-                toast.innerHTML = `🔔 <strong>Notification:</strong> ₹{data.message}`;
+                toast.innerHTML = `🔔 <strong>Notification:</strong> ${data.message}`;
                 document.body.appendChild(toast);
                 setTimeout(() => toast.remove(), 6000);
             });
@@ -126,7 +126,7 @@
                 toast.style.top = '20px';
                 toast.style.right = '20px';
                 toast.style.zIndex = '1000';
-                toast.innerHTML = `<strong>Order Update!</strong> Order #₹{data.order_id} is now: ₹{data.status}`;
+                toast.innerHTML = `<strong>Order Update!</strong> Order #${data.order_id} is now: ${data.status}`;
                 document.body.appendChild(toast);
                 setTimeout(() => toast.remove(), 5000);
             });
