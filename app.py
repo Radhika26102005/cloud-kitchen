@@ -63,16 +63,22 @@ app.config['UPLOAD_FOLDER'] = 'static/uploads'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024 # 16MB max-limit
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 
-# Cloudinary Configuration
-cloudinary_url = os.getenv('CLOUDINARY_URL')
-if cloudinary_url:
-    cloudinary.config_from_url(cloudinary_url.strip())
-else:
-    cloudinary.config( 
-      cloud_name = os.getenv('CLOUDINARY_CLOUD_NAME'), 
-      api_key = os.getenv('CLOUDINARY_API_KEY'), 
-      api_secret = os.getenv('CLOUDINARY_API_SECRET') 
-    )
+# Cloudinary Configuration (Wrapped in Try for safety)
+try:
+    cloudinary_url = os.getenv('CLOUDINARY_URL')
+    if cloudinary_url:
+        cloudinary.config_from_url(cloudinary_url.strip())
+    else:
+        cloudinary.config( 
+          cloud_name = os.getenv('CLOUDINARY_CLOUD_NAME'), 
+          api_key = os.getenv('CLOUDINARY_API_KEY'), 
+          api_secret = os.getenv('CLOUDINARY_API_SECRET') 
+        )
+except Exception as e:
+    print(f"Cloudinary Config Error (Skipping): {e}")
+
+# Stripe Configuration
+stripe.api_key = os.getenv('STRIPE_SECRET_KEY', 'sk_test_51P2U... (placeholder)')
 
 if not os.path.exists(app.config['UPLOAD_FOLDER']):
     os.makedirs(app.config['UPLOAD_FOLDER'])
