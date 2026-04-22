@@ -8,6 +8,25 @@
     </p>
 </div>
 
+<!-- Category Pills (Zomato Style) -->
+<div style="display: flex; gap: 1rem; overflow-x: auto; padding: 1rem 0; margin-bottom: 1.5rem; scrollbar-width: none;">
+    {% set cats = [
+        ('all', '🍽️ All'),
+        ('tiffin', '📦 Tiffin'),
+        ('breakfast', '🍳 Breakfast'),
+        ('lunch', '🍱 Lunch'),
+        ('dinner', '🌙 Dinner'),
+        ('sweets', '🍰 Sweets'),
+        ('beverages', '🥤 Beverages')
+    ] %}
+    {% for slug, name in cats %}
+    <a href="{{ url_for('index', category=slug if slug != 'all' else '') }}" 
+       style="white-space: nowrap; padding: 0.6rem 1.2rem; border-radius: 50px; border: 1px solid var(--border-color); text-decoration: none; color: var(--text-main); background: {% if request.args.get('category') == slug or (slug == 'all' and not request.args.get('category')) %}var(--primary-color); color: white; border-color: var(--primary-color);{% else %}white;{% endif %} font-weight: 500; transition: 0.3s; box-shadow: var(--shadow);">
+        {{ name }}
+    </a>
+    {% endfor %}
+</div>
+
 <form class="filter-bar" method="GET" action="{{ url_for('index') }}">
     <input type="text" name="search" class="form-control search-input" placeholder="Search for delicious food..." value="{{ request.args.get('search', '') }}">
     

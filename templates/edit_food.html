@@ -25,9 +25,13 @@
         <div class="form-group">
             <label>Category</label>
             <select name="category" class="form-control" required>
-                <option value="vegetarian" {% if item.category == 'vegetarian' %}selected{% endif %}>Vegetarian</option>
-                <option value="non-vegetarian" {% if item.category == 'non-vegetarian' %}selected{% endif %}>Non-Vegetarian</option>
-                <option value="organic" {% if item.category == 'organic' %}selected{% endif %}>Organic</option>
+                <option value="tiffin" {% if item.category == 'tiffin' %}selected{% endif %}>🍱 Tiffin Service</option>
+                <option value="breakfast" {% if item.category == 'breakfast' %}selected{% endif %}>🍳 Breakfast</option>
+                <option value="lunch" {% if item.category == 'lunch' %}selected{% endif %}>🍲 Lunch Special</option>
+                <option value="dinner" {% if item.category == 'dinner' %}selected{% endif %}>🌙 Dinner Feast</option>
+                <option value="sweets" {% if item.category == 'sweets' %}selected{% endif %}>🍰 Sweets & Desserts</option>
+                <option value="beverages" {% if item.category == 'beverages' %}selected{% endif %}>🥤 Beverages</option>
+                <option value="other" {% if item.category == 'other' %}selected{% endif %}>🍽️ Other</option>
             </select>
         </div>
         <div class="form-group">

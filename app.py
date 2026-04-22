@@ -132,19 +132,24 @@ def index():
             return redirect(url_for('seller_dashboard'))
             
     try:
-        search = request.args.get('search', '')
-        is_veg = request.args.get('is_veg')
-        
         # Safe Query: Only show items if the table exists
         items = []
         recommendations = []
+        search = request.args.get('search', '')
+        is_veg = request.args.get('is_veg')
+        max_price = request.args.get('max_price')
+        category = request.args.get('category')
         
         try:
             query = FoodItem.query.join(User, FoodItem.seller_id == User.id).filter(User.is_open == True, FoodItem.quantity > 0)
             if search:
                 query = query.filter(FoodItem.name.ilike(f'%{search}%'))
-            if is_veg == 'true':
-                query = query.filter(FoodItem.is_veg == True)
+            if is_veg:
+                query = query.filter(FoodItem.is_veg == (is_veg == 'true'))
+            if max_price:
+                query = query.filter(FoodItem.price <= float(max_price))
+            if category:
+                query = query.filter(FoodItem.category == category)
             
             items = query.all()
             recommendations = FoodItem.query.filter(FoodItem.quantity > 0).limit(4).all()
