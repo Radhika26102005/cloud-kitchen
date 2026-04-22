@@ -642,12 +642,12 @@ def update_order_status(order_id):
         order.status = new_status
         db.session.commit()
         
-        # Emit real-time notification to Customer, Sellers, and Delivery
+        # BROADCAST to everyone to force dashboard refreshes
         socketio.emit('status_change', {
             'order_id': order.id,
             'status': new_status,
             'customer_id': order.customer_id
-        }) # Broadcast to everyone for dashboard refreshes
+        }, broadcast=True)
         
         # Save to DB Notification (Wrapped in Try to prevent blocking the status update)
         try:

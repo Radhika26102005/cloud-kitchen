@@ -128,8 +128,11 @@
 
         // Listen for ANY status update to refresh earnings and active lists
         socket.on('status_change', (data) => {
-            console.log("Status changed, refreshing dashboard...");
-            window.location.reload();
+            console.log("⚡ LIVE UPDATE: Order status changed!", data);
+            // Refresh quickly
+            setTimeout(() => {
+                window.location.reload();
+            }, 500);
         });
     {% endif %}
 </script>
