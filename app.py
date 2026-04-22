@@ -396,10 +396,8 @@ def edit_food(item_id):
                     upload_result = cloudinary.uploader.upload(file)
                     item.image_url = upload_result['secure_url']
                 except Exception as e:
-                    print(f"Cloudinary Error: {e}")
-                    filename = secure_filename(f"{int(time.time())}_{file.filename}")
-                    file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-                    item.image_url = url_for('static', filename=f'uploads/{filename}')
+                    print(f"Cloudinary Edit Error: {e}")
+                    # Keep existing image on failure
         elif request.form.get('image_url'):
             item.image_url = request.form.get('image_url')
         
@@ -435,10 +433,11 @@ def food_detail(item_id):
             if 'review_image' in request.files:
                 file = request.files['review_image']
                 if file and allowed_file(file.filename):
-                    filename = secure_filename(file.filename)
-                    filename = f"rev_{int(os.path.getmtime('app.py'))}_{filename}"
-                    file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-                    image_url = url_for('static', filename=f'uploads/{filename}')
+                    try:
+                        upload_result = cloudinary.uploader.upload(file)
+                        image_url = upload_result['secure_url']
+                    except Exception as e:
+                        print(f"Cloudinary Review Upload Error: {e}")
             
             review = Review(
                 customer_id=current_user.id, 
