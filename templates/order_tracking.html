@@ -102,6 +102,14 @@
         // Poll every 4 seconds for smoother movement
         setInterval(pollLocation, 4000);
         pollLocation();
+
+        // LIVE STATUS UPDATE: If the cook or rider updates the status, refresh the UI
+        socket.on('status_change', (data) => {
+            if (data.order_id == orderId) {
+                console.log("⚡ Order status updated! Refreshing status bar...");
+                window.location.reload();
+            }
+        });
     </script>
 
     <div style="margin-top: 3rem; padding-top: 2rem; border-top: 1px solid var(--border-color);">
