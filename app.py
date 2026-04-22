@@ -485,7 +485,7 @@ def checkout():
                 payment_method_types=['card'],
                 line_items=[{
                     'price_data': {
-                        'currency': 'usd',
+                        'currency': 'inr',
                         'unit_amount': int(total * 100),
                         'product_data': {'name': 'Cloud Kitchen Order'},
                     },
