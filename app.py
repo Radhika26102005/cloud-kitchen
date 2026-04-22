@@ -394,16 +394,17 @@ def edit_food(item_id):
         if file and file.filename != '' and allowed_file(file.filename):
             # User uploaded a new image file → send to Cloudinary
             try:
-                upload_result = cloudinary.uploader.upload(file)
+                file_bytes = file.read()  # Read into memory first
+                upload_result = cloudinary.uploader.upload(file_bytes)
                 item.image_url = upload_result['secure_url']
-                flash('Image updated successfully!', 'success')
             except Exception as e:
-                print(f"Cloudinary Edit Error: {e}")
-                flash('Image upload failed. Please try again or use a URL.', 'warning')
+                error_msg = str(e)
+                print(f"Cloudinary Edit Error: {error_msg}")
+                flash(f'Cloudinary Error: {error_msg[:200]}', 'danger')
         elif new_url:
             # User pasted a new image URL
             item.image_url = new_url
-        # else: no new image provided → keep existing image_url unchanged
+        # else: keep existing image
         db.session.commit()
         flash('Dish updated successfully!', 'success')
         return redirect(url_for('seller_dashboard'))
