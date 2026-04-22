@@ -387,19 +387,23 @@ def edit_food(item_id):
         item.quantity = int(request.form.get('quantity'))
         item.category = request.form.get('category')
         
-        # Handle File Upload
-        if 'image_file' in request.files:
-            file = request.files['image_file']
-            if file and allowed_file(file.filename):
-                try:
-                    upload_result = cloudinary.uploader.upload(file)
-                    item.image_url = upload_result['secure_url']
-                except Exception as e:
-                    print(f"Cloudinary Edit Error: {e}")
-                    # Keep existing image on failure
-        elif request.form.get('image_url'):
-            item.image_url = request.form.get('image_url')
-        
+        # Handle Image Update
+        file = request.files.get('image_file')
+        new_url = request.form.get('image_url', '').strip()
+
+        if file and file.filename != '' and allowed_file(file.filename):
+            # User uploaded a new image file → send to Cloudinary
+            try:
+                upload_result = cloudinary.uploader.upload(file)
+                item.image_url = upload_result['secure_url']
+                flash('Image updated successfully!', 'success')
+            except Exception as e:
+                print(f"Cloudinary Edit Error: {e}")
+                flash('Image upload failed. Please try again or use a URL.', 'warning')
+        elif new_url:
+            # User pasted a new image URL
+            item.image_url = new_url
+        # else: no new image provided → keep existing image_url unchanged
         db.session.commit()
         flash('Dish updated successfully!', 'success')
         return redirect(url_for('seller_dashboard'))
