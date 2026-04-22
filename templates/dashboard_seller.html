@@ -119,6 +119,20 @@
     {% endif %}
 </div>
 
+<h3>Recently Handed Over</h3>
+<div style="margin-bottom: 3rem;">
+    {% if handed_over %}
+        {% for order in handed_over %}
+        <div style="padding: 0.8rem; background: #f9f9f9; border-radius: 8px; margin-bottom: 0.5rem; border-left: 4px solid #2ecc71; display: flex; justify-content: space-between;">
+            <span><strong>Order #{{ order.id }}</strong> - Handed to Rider ✅</span>
+            <span style="color: var(--text-muted); font-size: 0.8rem;">Status: {{ order.status }}</span>
+        </div>
+        {% endfor %}
+    {% else %}
+        <p style="color: var(--text-muted); font-size: 0.9rem;">No orders handed over yet today.</p>
+    {% endif %}
+</div>
+
 <h3>My Menu</h3>
 
 <div class="food-grid">
@@ -199,6 +213,12 @@
             setTimeout(() => {
                 window.location.reload();
             }, 3000);
+        });
+
+        // Listen for ANY status update to refresh the kitchen lists
+        socket.on('status_change', (data) => {
+            console.log("⚡ Kitchen Update: Order status changed!");
+            window.location.reload();
         });
     {% endif %}
 </script>

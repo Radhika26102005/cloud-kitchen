@@ -274,12 +274,23 @@ def seller_dashboard():
     except:
         active_orders = []
 
+    # Fetch handed over orders
+    try:
+        handed_over = Order.query.join(OrderItem).join(FoodItem).\
+            filter(FoodItem.seller_id == current_user.id, Order.status.in_(['Out for Delivery', 'Delivered'])).all()
+        handed_over = list(set(handed_over))
+        handed_over.sort(key=lambda x: x.id, reverse=True)
+        handed_over = handed_over[:5] # Show last 5
+    except:
+        handed_over = []
+
     return render_template('dashboard_seller.html', 
                            items=items, 
                            revenue=total_revenue, 
                            popular=popular_dishes,
                            stats=order_stats,
-                           orders=active_orders)
+                           orders=active_orders,
+                           handed_over=handed_over)
 
 @app.route('/seller/toggle_status', methods=['POST'])
 @login_required
