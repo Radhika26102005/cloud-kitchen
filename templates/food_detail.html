@@ -7,7 +7,7 @@
     <div>
         <span class="badge" style="margin-bottom: 1rem; display: inline-block;">{{ item.category|capitalize }}</span>
         <h1 style="margin: 0 0 1rem 0;">{{ item.name }}</h1>
-        <p class="food-price" style="font-size: 2rem; margin-bottom: 1.5rem;">&#8377;{{ "%.2f"|format(item.price) }}</p>
+        <p class="food-price" style="font-size: 2rem; margin-bottom: 1.5rem;">₹{{ "%.2f"|format(item.price) }}</p>
         
         <div style="background: var(--bg-color); padding: 1.5rem; border-radius: var(--border-radius); margin-bottom: 2rem;">
             <h3 style="margin-top: 0;">Description</h3>
