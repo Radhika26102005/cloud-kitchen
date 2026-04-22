@@ -31,11 +31,11 @@
                     <span class="badge" style="font-size: 1rem; background: {% if order.status == 'Delivered' %}#e8f5e9{% elif order.status == 'Out for Delivery' %}#fff8e1{% else %}#ffebee{% endif %}; color: {% if order.status == 'Delivered' %}#2e7d32{% elif order.status == 'Out for Delivery' %}#f57f17{% else %}#c62828{% endif %};">
                         {{ order.status }}
                     </span>
-                    <h3 style="margin: 0.5rem 0 0 0; color: var(--primary-color);">${{ "%.2f"|format(order.total_amount) }}</h3>
+                    <h3 style="margin: 0.5rem 0 0 0; color: var(--primary-color);">₹{{ "%.2f"|format(order.total_amount) }}</h3>
                     {% if current_user.role == 'seller' %}
-                        <p style="font-size: 0.8rem; color: #2ecc71; margin: 0;">Your Net: ${{ "%.2f"|format(order.total_amount - order.delivery_fee - order.service_fee - order.platform_commission) }}</p>
+                        <p style="font-size: 0.8rem; color: #2ecc71; margin: 0;">Your Net: ₹{{ "%.2f"|format(order.total_amount - order.delivery_fee - order.service_fee - order.platform_commission) }}</p>
                     {% elif current_user.role == 'delivery' %}
-                        <p style="font-size: 0.8rem; color: #2ecc71; margin: 0;">Your Fee: ${{ "%.2f"|format(order.delivery_fee) }}</p>
+                        <p style="font-size: 0.8rem; color: #2ecc71; margin: 0;">Your Fee: ₹{{ "%.2f"|format(order.delivery_fee) }}</p>
                     {% endif %}
                 </div>
             </div>
@@ -48,10 +48,10 @@
                         <img src="{{ item.food_item.image_url }}" alt="{{ item.food_item.name }}" style="width: 60px; height: 60px; border-radius: 8px; object-fit: cover;">
                         <div style="flex-grow: 1;">
                             <strong style="display: block; font-size: 1.1rem;">{{ item.food_item.name }}</strong>
-                            <span style="color: var(--text-muted);">Qty: {{ item.quantity }} × ${{ "%.2f"|format(item.price) }}</span>
+                            <span style="color: var(--text-muted);">Qty: {{ item.quantity }} × ₹{{ "%.2f"|format(item.price) }}</span>
                         </div>
                         <div>
-                            <strong>${{ "%.2f"|format(item.quantity * item.price) }}</strong>
+                            <strong>₹{{ "%.2f"|format(item.quantity * item.price) }}</strong>
                         </div>
                     </div>
                     {% endif %}

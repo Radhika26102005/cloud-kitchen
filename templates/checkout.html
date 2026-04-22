@@ -7,19 +7,19 @@
         <h4 style="margin-top: 0; color: var(--text-muted);">Payment Summary</h4>
         <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
             <span>Items Total:</span>
-            <span>${{ "%.2f"|format(item_total) }}</span>
+            <span>₹{{ "%.2f"|format(item_total) }}</span>
         </div>
         <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
             <span>Delivery Fee:</span>
-            <span>${{ "%.2f"|format(delivery_fee) }}</span>
+            <span>₹{{ "%.2f"|format(delivery_fee) }}</span>
         </div>
         <div style="display: flex; justify-content: space-between; margin-bottom: 1rem; border-bottom: 1px dashed var(--border-color); padding-bottom: 0.5rem;">
             <span>Platform Service Fee:</span>
-            <span>${{ "%.2f"|format(service_fee) }}</span>
+            <span>₹{{ "%.2f"|format(service_fee) }}</span>
         </div>
         <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 1.3rem; color: var(--primary-color);">
             <span>Grand Total:</span>
-            <span>${{ "%.2f"|format(total) }}</span>
+            <span>₹{{ "%.2f"|format(total) }}</span>
         </div>
     </div>
     
@@ -121,7 +121,7 @@
         document.getElementById('mapError').style.display = 'none';
 
         // Reverse Geocoding (Zomato/Swiggy style auto-fill)
-        fetch(`https://nominatim.openstreetmap.org/reverse₹format=jsonv2&lat=${e.latlng.lat}&lon=${e.latlng.lng}`)
+        fetch(`https://nominatim.openstreetmap.org/reverse₹format=jsonv2&lat=₹{e.latlng.lat}&lon=₹{e.latlng.lng}`)
             .then(res => res.json())
             .then(data => {
                 if(data && data.address) {

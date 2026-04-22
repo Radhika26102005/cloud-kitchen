@@ -20,9 +20,9 @@
                 {% for entry in items %}
                 <tr style="border-bottom: 1px solid var(--border-color);">
                     <td style="padding: 1rem 0; font-weight: 600;">{{ entry.food.name }}</td>
-                    <td style="padding: 1rem 0;">${{ "%.2f"|format(entry.food.price) }}</td>
+                    <td style="padding: 1rem 0;">₹{{ "%.2f"|format(entry.food.price) }}</td>
                     <td style="padding: 1rem 0;">{{ entry.cart_item.quantity }}</td>
-                    <td style="padding: 1rem 0; font-weight: 700;">${{ "%.2f"|format(entry.subtotal) }}</td>
+                    <td style="padding: 1rem 0; font-weight: 700;">₹{{ "%.2f"|format(entry.subtotal) }}</td>
                     <td style="padding: 1rem 0;">
                         <form method="POST" action="{{ url_for('remove_from_cart', cart_id=entry.cart_item.id) }}" style="margin: 0;">
                             <button type="submit" class="btn" style="background: transparent; color: #ff5200; padding: 0;">Remove</button>
@@ -35,7 +35,7 @@
         
         <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 2rem; padding-top: 1rem; border-top: 2px solid var(--border-color);">
             <h3 style="margin: 0;">Total Amount:</h3>
-            <h2 style="margin: 0; color: var(--primary-color);">${{ "%.2f"|format(total) }}</h2>
+            <h2 style="margin: 0; color: var(--primary-color);">₹{{ "%.2f"|format(total) }}</h2>
         </div>
         
         <div style="text-align: right; margin-top: 2rem;">

@@ -6,7 +6,7 @@
         <h2>Delivery Dashboard</h2>
         <div style="background: white; padding: 0.8rem 1.5rem; border-radius: 50px; box-shadow: var(--shadow); border-left: 5px solid #2ecc71;">
             <span style="color: var(--text-muted); font-size: 0.9rem;">Total Earnings: </span>
-            <strong style="font-size: 1.2rem; color: var(--text-main);">${{ "%.2f"|format(earnings) }}</strong>
+            <strong style="font-size: 1.2rem; color: var(--text-main);">₹{{ "%.2f"|format(earnings) }}</strong>
         </div>
     </div>
 
@@ -91,7 +91,7 @@
 
         watchId = navigator.geolocation.watchPosition(
             (position) => {
-                fetch(`/api/update_location/${orderId}`, {
+                fetch(`/api/update_location/₹{orderId}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -118,7 +118,7 @@
         socket.on('new_order_alert', (data) => {
             const toast = document.createElement('div');
             toast.style = "position: fixed; top: 20px; right: 20px; background: #3498db; color: white; padding: 1rem 2rem; border-radius: 10px; z-index: 9999; box-shadow: 0 4px 15px rgba(0,0,0,0.2); animation: slideIn 0.5s ease-out;";
-            toast.innerHTML = `<strong>🚚 ${data.message}</strong><br>Checking for new orders...`;
+            toast.innerHTML = `<strong>🚚 ₹{data.message}</strong><br>Checking for new orders...`;
             document.body.appendChild(toast);
             
             setTimeout(() => {
