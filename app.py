@@ -64,8 +64,9 @@ app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024 # 16MB max-limit
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 
 # Cloudinary Configuration
-if os.getenv('CLOUDINARY_URL'):
-    cloudinary.config_from_url(os.getenv('CLOUDINARY_URL'))
+cloudinary_url = os.getenv('CLOUDINARY_URL')
+if cloudinary_url:
+    cloudinary.config_from_url(cloudinary_url.strip())
 else:
     cloudinary.config( 
       cloud_name = os.getenv('CLOUDINARY_CLOUD_NAME'), 
