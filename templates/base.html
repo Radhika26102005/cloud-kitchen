@@ -15,7 +15,9 @@
             🌿 Cloud Kitchen
         </a>
         <div class="nav-links">
-            <a href="{{ url_for('index') }}">Home</a>
+            {% if current_user.role != 'delivery' and current_user.role != 'seller' %}
+                <a href="{{ url_for('index') }}">Home</a>
+            {% endif %}
             {% if current_user.is_authenticated and current_user.email == 'admin@cloudkitchen.com' %}
                 <a href="{{ url_for('admin_dashboard') }}" style="color: #e67e22; font-weight: 800;">👑 Admin</a>
             {% endif %}

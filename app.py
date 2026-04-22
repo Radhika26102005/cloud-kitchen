@@ -118,6 +118,12 @@ def load_user(user_id):
 
 @app.route('/')
 def index():
+    if current_user.is_authenticated:
+        if current_user.role == 'delivery':
+            return redirect(url_for('delivery_dashboard'))
+        elif current_user.role == 'seller':
+            return redirect(url_for('seller_dashboard'))
+            
     try:
         search = request.args.get('search', '')
         is_veg = request.args.get('is_veg')
