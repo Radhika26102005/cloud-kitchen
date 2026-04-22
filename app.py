@@ -22,36 +22,6 @@ import cloudinary.api
 
 load_dotenv() # Load variables from .env
 
-def send_notification(user_id, message, msg_type='info'):
-    new_notif = Notification(user_id=user_id, message=message, type=msg_type)
-    db.session.add(new_notif)
-    db.session.commit()
-    
-    # Emit for real-time (SocketIO)
-    socketio.emit('new_notification', {'message': message, 'type': msg_type}, room=f'user_{user_id}')
-    
-    # Send Web Push (Background)
-    from pywebpush import webpush, WebPushException
-    import json
-    
-    subscriptions = PushSubscription.query.filter_by(user_id=user_id).all()
-    for sub in subscriptions:
-        try:
-            webpush(
-                subscription_info={
-                    "endpoint": sub.endpoint,
-                    "keys": {"p256dh": sub.p256dh, "auth": sub.auth}
-                },
-                data=json.dumps({"title": "Cloud Kitchen", "body": message}),
-                vapid_private_key=VAPID_PRIVATE_KEY,
-                vapid_claims={"sub": f"mailto:{VAPID_CLAIM_EMAIL}"}
-            )
-        except WebPushException as ex:
-            print(f"Web Push Error: {ex}")
-            # If the subscription is expired, delete it
-            if ex.response and ex.response.status_code == 410:
-                db.session.delete(sub)
-                db.session.commit()
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'super-secret-key-for-cloud-kitchen')
@@ -108,8 +78,37 @@ except Exception as e:
 
 socketio = SocketIO(app)
 
-# PRO TIP: Move this to a .env file for production security
-stripe.api_key = os.getenv('STRIPE_SECRET_KEY', 'sk_test_51Px9XBRp1zG6L2eFm6f6f6f6f6f6f6f6') 
+def send_notification(user_id, message, msg_type='info'):
+    new_notif = Notification(user_id=user_id, message=message, type=msg_type)
+    db.session.add(new_notif)
+    db.session.commit()
+    
+    # Emit for real-time (SocketIO)
+    socketio.emit('new_notification', {'message': message, 'type': msg_type}, room=f'user_{user_id}')
+    
+    # Send Web Push (Background)
+    from pywebpush import webpush, WebPushException
+    import json
+    
+    subscriptions = PushSubscription.query.filter_by(user_id=user_id).all()
+    for sub in subscriptions:
+        try:
+            webpush(
+                subscription_info={
+                    "endpoint": sub.endpoint,
+                    "keys": {"p256dh": sub.p256dh, "auth": sub.auth}
+                },
+                data=json.dumps({"title": "Cloud Kitchen", "body": message}),
+                vapid_private_key=VAPID_PRIVATE_KEY,
+                vapid_claims={"sub": f"mailto:{VAPID_CLAIM_EMAIL}"}
+            )
+        except WebPushException as ex:
+            print(f"Web Push Error: {ex}")
+            if ex.response and ex.response.status_code == 410:
+                db.session.delete(sub)
+                db.session.commit()
+        except Exception as e:
+            print(f"Push notification error: {e}")
 
 def allowed_file(filename):
     return '.' in filename and \
