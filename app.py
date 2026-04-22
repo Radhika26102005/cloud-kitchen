@@ -653,7 +653,7 @@ def update_order_status(order_id):
             'order_id': order.id,
             'status': new_status,
             'customer_id': order.customer_id
-        }, broadcast=True)
+        })
         
         # Save to DB Notification (Wrapped in Try to prevent blocking the status update)
         try:
