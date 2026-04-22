@@ -17,7 +17,7 @@
         <option value="false" {% if request.args.get('is_veg') == 'false' %}selected{% endif %}>Non-Veg Only</option>
     </select>
 
-    <input type="number" name="max_price" class="form-control" placeholder="Max Price (?)" value="{{ request.args.get('max_price', '') }}" style="width: 130px;">
+    <input type="number" name="max_price" class="form-control" placeholder="Max Price (&#8377;)" value="{{ request.args.get('max_price', '') }}" style="width: 130px;">
     
     <button type="submit" class="btn btn-primary" style="padding: 0.8rem 2rem;">Apply Filters</button>
 </form>
@@ -35,7 +35,7 @@
             <div class="food-info">
                 <h4 style="margin: 0;">{{ item.name }}</h4>
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.5rem;">
-                    <span class="food-price" style="font-size: 1.1rem;">?{{ "%.2f"|format(item.price) }}</span>
+                    <span class="food-price" style="font-size: 1.1rem;">&#8377;{{ "%.2f"|format(item.price) }}</span>
                     <a href="{{ url_for('food_detail', item_id=item.id) }}" class="btn btn-primary" style="padding: 0.3rem 0.8rem; font-size: 0.8rem;">View</a>
                 </div>
             </div>
@@ -62,7 +62,7 @@
             </div>
             <p class="food-desc">{{ item.description[:100] }}...</p>
             <div class="food-meta">
-                <span class="food-price">?{{ "%.2f"|format(item.price) }}</span>
+                <span class="food-price">&#8377;{{ "%.2f"|format(item.price) }}</span>
                 <a href="{{ url_for('food_detail', item_id=item.id) }}" class="btn btn-primary">View Details</a>
             </div>
         </div>

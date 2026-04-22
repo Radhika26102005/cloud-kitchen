@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cloud Kitchen | Healthy Home-Cooked Food</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2&#8377;family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
     <meta name="theme-color" content="#ff5200">
@@ -112,7 +112,7 @@
                 toast.style.right = '20px';
                 toast.style.zIndex = '9999';
                 toast.style.boxShadow = 'var(--shadow)';
-                toast.innerHTML = `🔔 <strong>Notification:</strong> ?{data.message}`;
+                toast.innerHTML = `🔔 <strong>Notification:</strong> &#8377;{data.message}`;
                 document.body.appendChild(toast);
                 setTimeout(() => toast.remove(), 6000);
             });
@@ -124,7 +124,7 @@
                 toast.style.top = '20px';
                 toast.style.right = '20px';
                 toast.style.zIndex = '1000';
-                toast.innerHTML = `<strong>Order Update!</strong> Order #?{data.order_id} is now: ?{data.status}`;
+                toast.innerHTML = `<strong>Order Update!</strong> Order #&#8377;{data.order_id} is now: &#8377;{data.status}`;
                 document.body.appendChild(toast);
                 setTimeout(() => toast.remove(), 5000);
             });

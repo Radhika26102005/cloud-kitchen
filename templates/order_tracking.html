@@ -3,7 +3,7 @@
 {% block content %}
 <div class="tracking-container">
     <h2>Order #{{ order.id }} Tracking</h2>
-    <p style="color: var(--text-muted); margin-bottom: 0.5rem;">Total Amount: ?{{ "%.2f"|format(order.total_amount) }}</p>
+    <p style="color: var(--text-muted); margin-bottom: 0.5rem;">Total Amount: &#8377;{{ "%.2f"|format(order.total_amount) }}</p>
     <p style="color: var(--text-muted); margin-bottom: 2rem;"><strong>Delivery To:</strong> {{ order.delivery_address or 'Not specified' }}</p>
 
     <div class="status-steps">
@@ -70,7 +70,7 @@
         }
 
         function pollLocation() {
-            fetch(`/api/get_location/?{orderId}`)
+            fetch(`/api/get_location/&#8377;{orderId}`)
                 .then(res => res.json())
                 .then(data => {
                     if (data.status === 'Out for Delivery' && data.lat && data.lng) {
