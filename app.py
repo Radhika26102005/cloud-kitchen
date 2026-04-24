@@ -995,7 +995,11 @@ def secret_db_migrate():
             'ALTER TABLE "user" ADD COLUMN phone VARCHAR(15);',
             'ALTER TABLE "user" ADD COLUMN otp_code VARCHAR(6);',
             'ALTER TABLE "user" ADD COLUMN otp_expiry TIMESTAMP;',
+            # Make existing columns optional
+            'ALTER TABLE "user" ALTER COLUMN email DROP NOT NULL;',
+            'ALTER TABLE "user" ALTER COLUMN password DROP NOT NULL;',
             # Order table migrations
+
             'ALTER TABLE "order" ADD COLUMN seller_rating INTEGER;',
             'ALTER TABLE "order" ADD COLUMN seller_review TEXT;',
             'ALTER TABLE "order" ADD COLUMN seller_review_image VARCHAR(250);',
