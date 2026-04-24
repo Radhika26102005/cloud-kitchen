@@ -182,22 +182,44 @@ def login():
         user.otp_code = otp
         user.otp_expiry = datetime.utcnow() + timedelta(minutes=10)
         db.session.commit()
-        # Send OTP via Twilio
+        # Send OTP via Fast2SMS (Best for India) or Twilio
         try:
-            from twilio.rest import Client
-            twilio_client = Client(
-                os.getenv('TWILIO_ACCOUNT_SID'),
-                os.getenv('TWILIO_AUTH_TOKEN')
-            )
-            twilio_client.messages.create(
-                body=f'Your Cloud Kitchen OTP is: {otp}. Valid for 10 minutes.',
-                from_=os.getenv('TWILIO_PHONE_NUMBER'),
-                to=phone
-            )
-            flash(f'OTP sent to {phone[-4:].rjust(10, "*")}. Check your SMS!', 'info')
+            fast2sms_key = os.getenv('FAST2SMS_API_KEY')
+            twilio_sid = os.getenv('TWILIO_ACCOUNT_SID')
+            
+            if fast2sms_key:
+                # Fast2SMS implementation
+                import requests
+                url = "https://www.fast2sms.com/dev/bulkV2"
+                querystring = {
+                    "authorization": fast2sms_key,
+                    "variables_values": otp,
+                    "route": "otp",
+                    "numbers": phone.replace('+91', '').strip()
+                }
+                response = requests.request("GET", url, params=querystring)
+                if response.json().get('return'):
+                    flash(f'OTP sent to {phone[-4:].rjust(10, "*")}. Check your SMS!', 'info')
+                else:
+                    raise Exception(f"Fast2SMS Error: {response.text}")
+                    
+            elif twilio_sid:
+                # Twilio implementation
+                from twilio.rest import Client
+                twilio_client = Client(twilio_sid, os.getenv('TWILIO_AUTH_TOKEN'))
+                twilio_client.messages.create(
+                    body=f'Your Cloud Kitchen OTP is: {otp}. Valid for 10 minutes.',
+                    from_=os.getenv('TWILIO_PHONE_NUMBER'),
+                    to=phone
+                )
+                flash(f'OTP sent to {phone[-4:].rjust(10, "*")}. Check your SMS!', 'info')
+            else:
+                # No SMS gateway configured
+                flash(f'[DEV MODE] Your OTP is: {otp}', 'warning')
+                print(f"DEV OTP for {phone}: {otp}")
+                
         except Exception as e:
-            print(f'Twilio Error: {e}')
-            # DEV MODE: Show OTP in flash if Twilio not configured
+            print(f'SMS Error: {e}')
             flash(f'[DEV MODE] Your OTP is: {otp}', 'warning')
         return redirect(url_for('verify_otp', phone=phone))
     return render_template('login.html')
