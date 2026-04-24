@@ -38,6 +38,7 @@
                 {% elif current_user.role == 'delivery' %}
                     <a href="{{ url_for('delivery_dashboard') }}">Delivery</a>
                 {% endif %}
+                <a href="{{ url_for('profile') }}">Profile</a>
                 <a href="{{ url_for('logout') }}" class="btn btn-primary" style="padding: 0.5rem 1rem;">Logout</a>
             {% else %}
                 <a href="{{ url_for('login') }}">Login</a>

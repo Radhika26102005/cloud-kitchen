@@ -127,8 +127,64 @@
             </form>
         {% else %}
             <p style="font-weight: 500;">Current Status: <span style="color: var(--primary-color);">{{ order.status }}</span></p>
-            {% if order.status == 'Delivered' %}
-                <a href="{{ url_for('food_detail', item_id=order.food_item_id) }}" class="btn btn-primary">Leave a Review</a>
+            {% if order.status == 'Delivered' and not order.seller_rating and not order.delivery_rating %}
+                <div style="margin-top: 2rem; background: #f9f9f9; padding: 2rem; border-radius: 12px; border: 1px solid var(--border-color);">
+                    <h3 style="text-align: center; margin-bottom: 1.5rem;">Rate Your Experience 🌟</h3>
+                    <form method="POST" action="{{ url_for('rate_order', order_id=order.id) }}" enctype="multipart/form-data">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+                            <!-- Rate Cook -->
+                            <div style="background: white; padding: 1.5rem; border-radius: 8px; box-shadow: var(--shadow);">
+                                <h4>👨‍🍳 Rate the Home Cook</h4>
+                                <div class="form-group" style="margin-top: 1rem;">
+                                    <label>Rating (1-5)</label>
+                                    <select name="seller_rating" class="form-control" required>
+                                        <option value="5">⭐⭐⭐⭐⭐ Excellent</option>
+                                        <option value="4">⭐⭐⭐⭐ Good</option>
+                                        <option value="3">⭐⭐⭐ Average</option>
+                                        <option value="2">⭐⭐ Poor</option>
+                                        <option value="1">⭐ Terrible</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Review (Optional)</label>
+                                    <textarea name="seller_review" class="form-control" rows="2" placeholder="How was the food?"></textarea>
+                                </div>
+                                <div class="form-group">
+                                    <label>Photo (Optional)</label>
+                                    <input type="file" name="seller_review_image" class="form-control" accept="image/*">
+                                </div>
+                            </div>
+
+                            <!-- Rate Delivery -->
+                            <div style="background: white; padding: 1.5rem; border-radius: 8px; box-shadow: var(--shadow);">
+                                <h4>🛵 Rate the Delivery Partner</h4>
+                                <div class="form-group" style="margin-top: 1rem;">
+                                    <label>Rating (1-5)</label>
+                                    <select name="delivery_rating" class="form-control" required>
+                                        <option value="5">⭐⭐⭐⭐⭐ Excellent</option>
+                                        <option value="4">⭐⭐⭐⭐ Good</option>
+                                        <option value="3">⭐⭐⭐ Average</option>
+                                        <option value="2">⭐⭐ Poor</option>
+                                        <option value="1">⭐ Terrible</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Review (Optional)</label>
+                                    <textarea name="delivery_review" class="form-control" rows="2" placeholder="How was the delivery?"></textarea>
+                                </div>
+                                <div class="form-group">
+                                    <label>Photo (Optional)</label>
+                                    <input type="file" name="delivery_review_image" class="form-control" accept="image/*">
+                                </div>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 2rem; padding: 1rem;">Submit Ratings ✅</button>
+                    </form>
+                </div>
+            {% elif order.status == 'Delivered' %}
+                <div style="margin-top: 2rem; background: #e8f8f5; padding: 1.5rem; border-radius: 12px; text-align: center; border-left: 5px solid #2ecc71;">
+                    <h4 style="margin: 0; color: #2ecc71;">🌟 Thanks for rating this order!</h4>
+                </div>
             {% endif %}
         {% endif %}
     </div>

@@ -123,9 +123,24 @@
 <div style="margin-bottom: 3rem;">
     {% if handed_over %}
         {% for order in handed_over %}
-        <div style="padding: 0.8rem; background: #f9f9f9; border-radius: 8px; margin-bottom: 0.5rem; border-left: 4px solid #2ecc71; display: flex; justify-content: space-between;">
-            <span><strong>Order #{{ order.id }}</strong> - Handed to Rider ✅</span>
-            <span style="color: var(--text-muted); font-size: 0.8rem;">Status: {{ order.status }}</span>
+        <div style="padding: 1rem; background: #f9f9f9; border-radius: 8px; margin-bottom: 1rem; border-left: 4px solid #2ecc71;">
+            <div style="display: flex; justify-content: space-between;">
+                <span><strong>Order #{{ order.id }}</strong> - Handed to Rider ✅</span>
+                <span style="color: var(--text-muted); font-size: 0.8rem;">Status: {{ order.status }}</span>
+            </div>
+            {% if order.seller_rating %}
+                <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #ddd;">
+                    <div style="display: flex; gap: 0.5rem; color: #f1c40f;">
+                        {% for i in range(order.seller_rating) %}⭐{% endfor %}
+                    </div>
+                    {% if order.seller_review %}
+                        <p style="margin: 0.5rem 0; font-style: italic; color: #555;">"{{ order.seller_review }}"</p>
+                    {% endif %}
+                    {% if order.seller_review_image %}
+                        <img src="{{ order.seller_review_image }}" alt="Customer Review" style="max-height: 100px; border-radius: 8px; margin-top: 0.5rem; box-shadow: var(--shadow);">
+                    {% endif %}
+                </div>
+            {% endif %}
         </div>
         {% endfor %}
     {% else %}

@@ -54,8 +54,23 @@
             <h3 style="margin-top: 3rem;">Recent Deliveries</h3>
             {% if delivered_orders %}
                 {% for order in delivered_orders %}
-                <div style="padding: 0.8rem; background: #f9f9f9; border-radius: 8px; margin-bottom: 0.5rem; border-left: 4px solid #2ecc71;">
-                    <strong>Order #{{ order.id }}</strong> - Delivered ✅
+                <div style="padding: 1rem; background: #f9f9f9; border-radius: 8px; margin-bottom: 1rem; border-left: 4px solid #2ecc71;">
+                    <div style="display: flex; justify-content: space-between;">
+                        <span><strong>Order #{{ order.id }}</strong> - Delivered ✅</span>
+                    </div>
+                    {% if order.delivery_rating %}
+                        <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #ddd;">
+                            <div style="display: flex; gap: 0.5rem; color: #f1c40f;">
+                                {% for i in range(order.delivery_rating) %}⭐{% endfor %}
+                            </div>
+                            {% if order.delivery_review %}
+                                <p style="margin: 0.5rem 0; font-style: italic; color: #555;">"{{ order.delivery_review }}"</p>
+                            {% endif %}
+                            {% if order.delivery_review_image %}
+                                <img src="{{ order.delivery_review_image }}" alt="Customer Review" style="max-height: 100px; border-radius: 8px; margin-top: 0.5rem; box-shadow: var(--shadow);">
+                            {% endif %}
+                        </div>
+                    {% endif %}
                 </div>
                 {% endfor %}
             {% else %}

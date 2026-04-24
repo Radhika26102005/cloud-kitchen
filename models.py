@@ -57,6 +57,15 @@ class Order(db.Model):
     delivery_target_lng = db.Column(db.Float, nullable=True) # Customer exact lng
     created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
     
+    # Reviews directly tied to the Order
+    seller_rating = db.Column(db.Integer, nullable=True)
+    seller_review = db.Column(db.Text, nullable=True)
+    seller_review_image = db.Column(db.String(250), nullable=True)
+    
+    delivery_rating = db.Column(db.Integer, nullable=True)
+    delivery_review = db.Column(db.Text, nullable=True)
+    delivery_review_image = db.Column(db.String(250), nullable=True)
+    
     items = db.relationship('OrderItem', backref='order', lazy=True)
 
 class OrderItem(db.Model):

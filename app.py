@@ -305,6 +305,73 @@ def confirm_email(token):
         flash('You have confirmed your account. Thanks!', 'success')
     return redirect(url_for('login'))
 
+@app.route('/profile', methods=['GET', 'POST'])
+@login_required
+def profile():
+    if request.method == 'POST':
+        # Update user profile
+        current_user.username = request.form.get('username', current_user.username)
+        current_user.email = request.form.get('email', '').strip() or None
+        current_user.location = request.form.get('location', current_user.location)
+        
+        # Handle profile image update
+        file = request.files.get('profile_image')
+        new_url = request.form.get('profile_image_url', '').strip()
+        if file and file.filename != '' and allowed_file(file.filename):
+            try:
+                upload_result = cloudinary.uploader.upload(file.read())
+                current_user.profile_image = upload_result['secure_url']
+            except Exception as e:
+                flash(f'Cloudinary Error: {e}', 'danger')
+        elif new_url:
+            current_user.profile_image = new_url
+            
+        db.session.commit()
+        flash('Profile updated successfully!', 'success')
+        return redirect(url_for('profile'))
+    return render_template('profile.html')
+
+@app.route('/rate_order/<int:order_id>', methods=['POST'])
+@login_required
+def rate_order(order_id):
+    if current_user.role != 'customer':
+        return redirect(url_for('index'))
+        
+    order = Order.query.get_or_404(order_id)
+    if order.customer_id != current_user.id or order.status != 'Delivered':
+        flash('You can only rate delivered orders.', 'warning')
+        return redirect(url_for('orders'))
+        
+    # Rate Seller
+    if request.form.get('seller_rating'):
+        order.seller_rating = int(request.form.get('seller_rating'))
+        order.seller_review = request.form.get('seller_review')
+        # Upload seller review image
+        seller_file = request.files.get('seller_review_image')
+        if seller_file and seller_file.filename != '' and allowed_file(seller_file.filename):
+            try:
+                res = cloudinary.uploader.upload(seller_file.read())
+                order.seller_review_image = res['secure_url']
+            except Exception as e:
+                print(f"Cloudinary Seller Review Upload Error: {e}")
+                
+    # Rate Delivery
+    if request.form.get('delivery_rating'):
+        order.delivery_rating = int(request.form.get('delivery_rating'))
+        order.delivery_review = request.form.get('delivery_review')
+        # Upload delivery review image
+        delivery_file = request.files.get('delivery_review_image')
+        if delivery_file and delivery_file.filename != '' and allowed_file(delivery_file.filename):
+            try:
+                res = cloudinary.uploader.upload(delivery_file.read())
+                order.delivery_review_image = res['secure_url']
+            except Exception as e:
+                print(f"Cloudinary Delivery Review Upload Error: {e}")
+
+    db.session.commit()
+    flash('Thank you! Your ratings have been submitted.', 'success')
+    return redirect(url_for('order_tracking', order_id=order.id))
+
 @app.route('/logout')
 @login_required
 def logout():
@@ -879,6 +946,31 @@ def secret_debug_error():
         return "Database Connection: OK! <br> Tables: " + str(db.metadata.tables.keys())
     except Exception as e:
         return f"<h1>Real Error Found:</h1><pre>{traceback.format_exc()}</pre>"
+
+@app.route('/secret_db_migrate')
+def secret_db_migrate():
+    # Helper to add columns to Order table
+    try:
+        queries = [
+            'ALTER TABLE "order" ADD COLUMN seller_rating INTEGER;',
+            'ALTER TABLE "order" ADD COLUMN seller_review TEXT;',
+            'ALTER TABLE "order" ADD COLUMN seller_review_image VARCHAR(250);',
+            'ALTER TABLE "order" ADD COLUMN delivery_rating INTEGER;',
+            'ALTER TABLE "order" ADD COLUMN delivery_review TEXT;',
+            'ALTER TABLE "order" ADD COLUMN delivery_review_image VARCHAR(250);'
+        ]
+        for q in queries:
+            try:
+                db.session.execute(text(q))
+            except Exception as inner_e:
+                # Column might already exist
+                pass
+        db.session.commit()
+        return "Migration completed successfully!"
+    except Exception as e:
+        import traceback
+        return f"Migration Failed: <pre>{traceback.format_exc()}</pre>"
+
 
 if __name__ == '__main__':
     socketio.run(app, debug=True, host='0.0.0.0')
