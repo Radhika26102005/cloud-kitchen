@@ -955,6 +955,16 @@ def secret_debug_error():
     except Exception as e:
         return f"<h1>Real Error Found:</h1><pre>{traceback.format_exc()}</pre>"
 
+@app.route('/debug_sms')
+def debug_sms():
+    key = os.getenv('FAST2SMS_API_KEY')
+    if key:
+        masked_key = key[:5] + "..." + key[-5:] if len(key) > 10 else "TOO SHORT"
+        return f"✅ SUCCESS: The server found the FAST2SMS API key: {masked_key}"
+    else:
+        return "❌ ERROR: The server cannot see any FAST2SMS_API_KEY. It is completely missing."
+
+
 @app.route('/secret_db_migrate')
 def secret_db_migrate():
     # Helper to add columns to Order and User tables
