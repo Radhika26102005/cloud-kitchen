@@ -278,9 +278,13 @@ def register():
             flash('Please enter a valid phone number.', 'danger')
             return redirect(url_for('register'))
         # Check duplicates
+        if User.query.filter_by(username=username).first():
+            flash('This username is already taken. Please choose another one.', 'danger')
+            return redirect(url_for('register'))
         if User.query.filter_by(phone=phone).first():
             flash('An account with this phone number already exists.', 'danger')
             return redirect(url_for('register'))
+
         if email and User.query.filter_by(email=email).first():
             flash('An account with this email already exists.', 'danger')
             return redirect(url_for('register'))
