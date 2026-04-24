@@ -612,13 +612,14 @@ def payment_success():
         return redirect(url_for('index'))
 
     # Financial Logic: Automated Revenue Splitting
-    # Customer pays = Food Total + Delivery Fee + Service Fee
-    # Seller gets = Food Total - 20% Platform Commission
-    # Delivery Rider gets = Delivery Fee
-    # Platform gets = 20% Commission + Service Fee
-    
-    seller_earnings = item_total - platform_commission
-    delivery_earnings = delivery_fee
+    item_total = sum(item.quantity * FoodItem.query.get(item.food_item_id).price for item in cart_items)
+    delivery_fee = 5.0
+    service_fee = 2.0
+    total = item_total + delivery_fee + service_fee
+    platform_commission = item_total * 0.20  # 20% from food
+    seller_earnings = item_total - platform_commission  # Seller gets 80%
+    delivery_earnings = delivery_fee  # Rider gets full delivery fee
+
 
     new_order = Order(
         customer_id=current_user.id,
@@ -646,10 +647,10 @@ def payment_success():
     db.session.commit()
     
     # LIVE ALERT: Notify all sellers and delivery people of new order
-    socketio.emit('new_order_alert', {'message': 'New order placed!'}, room='sellers')
-    socketio.emit('new_order_alert', {'message': 'New delivery available!'}, room='delivery')
+    socketio.emit('new_order_alert', {'message': f'New order #{new_order.id} placed! ₹{total:.0f}'}, room='sellers')
+    socketio.emit('new_order_alert', {'message': f'New delivery available! Earn ₹{delivery_earnings:.0f}'}, room='delivery')
     
-    flash('Payment successful! Your order has been split between the kitchen and delivery partner.', 'success')
+    flash(f'Payment successful! Order #{new_order.id} placed. Kitchen gets ₹{seller_earnings:.2f}, Rider gets ₹{delivery_earnings:.2f}.', 'success')
     return redirect(url_for('order_tracking', order_id=new_order.id))
 
 @app.route('/orders')
