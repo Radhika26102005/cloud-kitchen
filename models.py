@@ -6,15 +6,19 @@ db = SQLAlchemy()
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(150), unique=True, nullable=False)
-    email = db.Column(db.String(150), unique=True, nullable=False)
-    password = db.Column(db.String(150), nullable=False)
+    phone = db.Column(db.String(15), unique=True, nullable=False)  # Primary login
+    email = db.Column(db.String(150), unique=True, nullable=True)  # Optional
+    password = db.Column(db.String(150), nullable=True)  # Optional now
     role = db.Column(db.String(50), nullable=False) # customer, seller, delivery
     location = db.Column(db.String(250))
     has_agreed_to_terms = db.Column(db.Boolean, default=False)
     terms_agreed_at = db.Column(db.DateTime)
     is_open = db.Column(db.Boolean, default=True) # For Sellers
-    is_verified = db.Column(db.Boolean, default=False) # For Sellers
+    is_verified = db.Column(db.Boolean, default=False)
     profile_image = db.Column(db.String(250), default='https://cdn-icons-png.flaticon.com/512/3135/3135715.png')
+    # OTP Fields
+    otp_code = db.Column(db.String(6), nullable=True)
+    otp_expiry = db.Column(db.DateTime, nullable=True)
 
 class FoodItem(db.Model):
     id = db.Column(db.Integer, primary_key=True)

@@ -165,50 +165,104 @@ def index():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
+    """Step 1: Enter phone number to receive OTP"""
     if request.method == 'POST':
-        email = request.form.get('email')
-        password = request.form.get('password')
-        user = User.query.filter_by(email=email).first()
-        if user and check_password_hash(user.password, password):
+        phone = request.form.get('phone', '').strip()
+        # Normalize: add +91 if not present
+        if phone and not phone.startswith('+'):
+            phone = '+91' + phone.lstrip('0')
+        user = User.query.filter_by(phone=phone).first()
+        if not user:
+            flash('No account found with this phone number. Please register first.', 'danger')
+            return render_template('login.html')
+        # Generate and store OTP
+        import random
+        from datetime import datetime, timedelta
+        otp = str(random.randint(100000, 999999))
+        user.otp_code = otp
+        user.otp_expiry = datetime.utcnow() + timedelta(minutes=10)
+        db.session.commit()
+        # Send OTP via Twilio
+        try:
+            from twilio.rest import Client
+            twilio_client = Client(
+                os.getenv('TWILIO_ACCOUNT_SID'),
+                os.getenv('TWILIO_AUTH_TOKEN')
+            )
+            twilio_client.messages.create(
+                body=f'Your Cloud Kitchen OTP is: {otp}. Valid for 10 minutes.',
+                from_=os.getenv('TWILIO_PHONE_NUMBER'),
+                to=phone
+            )
+            flash(f'OTP sent to {phone[-4:].rjust(10, "*")}. Check your SMS!', 'info')
+        except Exception as e:
+            print(f'Twilio Error: {e}')
+            # DEV MODE: Show OTP in flash if Twilio not configured
+            flash(f'[DEV MODE] Your OTP is: {otp}', 'warning')
+        return redirect(url_for('verify_otp', phone=phone))
+    return render_template('login.html')
+
+@app.route('/verify_otp', methods=['GET', 'POST'])
+def verify_otp():
+    """Step 2: Enter OTP to complete login"""
+    from datetime import datetime
+    phone = request.args.get('phone') or request.form.get('phone')
+    if request.method == 'POST':
+        entered_otp = request.form.get('otp', '').strip()
+        user = User.query.filter_by(phone=phone).first()
+        if not user:
+            flash('Session expired. Please try again.', 'danger')
+            return redirect(url_for('login'))
+        if user.otp_code == entered_otp and user.otp_expiry > datetime.utcnow():
+            # Clear OTP after successful login
+            user.otp_code = None
+            user.otp_expiry = None
+            db.session.commit()
             login_user(user)
-            if user.role == 'seller':
+            flash(f'Welcome back, {user.username}!', 'success')
+            if user.role == 'delivery':
+                return redirect(url_for('delivery_dashboard'))
+            elif user.role == 'seller':
                 return redirect(url_for('seller_dashboard'))
             return redirect(url_for('index'))
         else:
-            flash('Login failed. Check your email and password.', 'danger')
-    return render_template('login.html')
+            flash('Invalid or expired OTP. Please try again.', 'danger')
+    return render_template('verify_otp.html', phone=phone)
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
         username = request.form.get('username')
-        email = request.form.get('email')
-        password = request.form.get('password')
+        phone = request.form.get('phone', '').strip()
+        email = request.form.get('email', '').strip() or None  # Optional
         role = request.form.get('role')
         location = request.form.get('location')
-        
-        # 1. Strict Email Validation (Regex)
-        email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
-        if not re.match(email_pattern, email):
-            flash('Invalid email format. Please enter a valid email address.', 'danger')
+        # Normalize phone
+        if phone and not phone.startswith('+'):
+            phone = '+91' + phone.lstrip('0')
+        # Validate phone
+        if not phone or len(phone) < 10:
+            flash('Please enter a valid phone number.', 'danger')
             return redirect(url_for('register'))
-
-        user = User.query.filter_by(email=email).first()
-        if user:
-            flash('Email address already exists', 'danger')
+        # Check duplicates
+        if User.query.filter_by(phone=phone).first():
+            flash('An account with this phone number already exists.', 'danger')
             return redirect(url_for('register'))
-            
+        if email and User.query.filter_by(email=email).first():
+            flash('An account with this email already exists.', 'danger')
+            return redirect(url_for('register'))
         new_user = User(
-            username=username, 
-            email=email, 
-            password=generate_password_hash(password, method='pbkdf2:sha256'), 
+            username=username,
+            phone=phone,
+            email=email,
+            password=None,
             role=role,
             location=location,
-            is_verified=True # Simple: Auto-verified
+            is_verified=True
         )
         db.session.add(new_user)
         db.session.commit()
-        flash('Account created! You can now log in.', 'success')
+        flash('Account created! Please login with your phone number.', 'success')
         return redirect(url_for('login'))
     return render_template('register.html')
 

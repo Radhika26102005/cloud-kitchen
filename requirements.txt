@@ -40,4 +40,5 @@ Flask-Mail
 psycopg2-binary
 pywebpush
 cloudinary
+twilio
 # Force rebuild

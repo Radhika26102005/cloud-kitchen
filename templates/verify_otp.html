@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="form-container" style="max-width: 420px;">
+    <div style="text-align: center; margin-bottom: 2rem;">
+        <div style="font-size: 3rem;">🔐</div>
+        <h2 style="margin: 0.5rem 0 0.3rem;">Enter OTP</h2>
+        <p style="color: var(--text-muted); font-size: 0.95rem;">
+            We sent a 6-digit code to<br>
+            <strong style="color: var(--text-main);">{{ phone }}</strong>
+        </p>
+    </div>
+
+    <form method="POST">
+        <input type="hidden" name="phone" value="{{ phone }}">
+
+        <div class="form-group" style="text-align: center;">
+            <label style="font-weight: 600; display: block; margin-bottom: 1rem;">Enter 6-digit OTP</label>
+            <input type="text" name="otp" class="form-control"
+                   placeholder="● ● ● ● ● ●"
+                   maxlength="6" pattern="[0-9]{6}" required
+                   style="text-align: center; font-size: 2rem; font-weight: 800; letter-spacing: 0.8rem; padding: 1rem; border-radius: 12px;">
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="width: 100%; padding: 1rem; font-size: 1.1rem; border-radius: 10px; margin-top: 1rem;">
+            ✅ Verify & Login
+        </button>
+    </form>
+
+    <div style="text-align: center; margin-top: 1.5rem;">
+        <p style="color: var(--text-muted); font-size: 0.9rem;">Didn't receive the OTP?</p>
+        <a href="{{ url_for('login') }}" style="color: var(--primary-color); font-weight: 600; font-size: 0.95rem;">
+            🔄 Resend OTP
+        </a>
+    </div>
+
+    <div style="margin-top: 1.5rem; padding: 1rem; background: #fff8f0; border-radius: 10px; border-left: 4px solid var(--primary-color);">
+        <p style="margin: 0; font-size: 0.85rem; color: var(--text-muted);">
+            ⏱️ OTP is valid for <strong>10 minutes</strong>. Do not share it with anyone.
+        </p>
+    </div>
+</div>
+{% endblock %}
