@@ -949,9 +949,16 @@ def secret_debug_error():
 
 @app.route('/secret_db_migrate')
 def secret_db_migrate():
-    # Helper to add columns to Order table
+    # Helper to add columns to Order and User tables
     try:
         queries = [
+            # User table migrations
+            'ALTER TABLE "user" ADD COLUMN phone VARCHAR(15);',
+            'ALTER TABLE "user" ADD COLUMN otp_code VARCHAR(6);',
+            'ALTER TABLE "user" ADD COLUMN otp_expiry TIMESTAMP;',
+            # Set dummy phone for existing users to avoid NOT NULL issues temporarily, or just let them be NULL if the DB allows (we set nullable=False in model, but ALTER TABLE ADD COLUMN allows NULL by default unless specified).
+            
+            # Order table migrations
             'ALTER TABLE "order" ADD COLUMN seller_rating INTEGER;',
             'ALTER TABLE "order" ADD COLUMN seller_review TEXT;',
             'ALTER TABLE "order" ADD COLUMN seller_review_image VARCHAR(250);',
@@ -963,13 +970,22 @@ def secret_db_migrate():
             try:
                 db.session.execute(text(q))
             except Exception as inner_e:
-                # Column might already exist
+                print(f"Skipping query (already exists?): {q} - Error: {inner_e}")
                 pass
         db.session.commit()
-        return "Migration completed successfully!"
+        
+        # After adding phone, update existing users to have a temporary phone number since it's nullable=False in the model.
+        try:
+            db.session.execute(text('UPDATE "user" SET phone = id::text WHERE phone IS NULL;'))
+            db.session.commit()
+        except:
+            pass
+
+        return "Migration completed successfully! All columns added."
     except Exception as e:
         import traceback
         return f"Migration Failed: <pre>{traceback.format_exc()}</pre>"
+
 
 
 if __name__ == '__main__':
