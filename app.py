@@ -959,33 +959,36 @@ def secret_debug_error():
         return f"<h1>Real Error Found:</h1><pre>{traceback.format_exc()}</pre>"
 
 @app.route('/debug_sms')
+
 def debug_sms():
     server_name = os.getenv("RENDER_SERVICE_NAME", "Local")
     key = os.getenv('FAST2SMS_API_KEY')
-    all_keys = list(os.environ.keys())
     
-    # Check for similar keys (common typos)
-    similar_keys = [k for k in all_keys if 'FAST' in k.upper() or 'SMS' in k.upper()]
-    
+    # Check actual DB columns for 'user' table
+    columns = []
+    try:
+        res = db.session.execute(text("SELECT column_name FROM information_schema.columns WHERE table_name = 'user'"))
+        columns = [row[0] for row in res]
+    except Exception as e:
+        columns = [f"Error checking columns: {e}"]
+
     if key:
         masked_key = key[:5] + "..." + key[-5:] if len(key) > 10 else "TOO SHORT"
-        return f"✅ SUCCESS! Server: {server_name}<br>Found FAST2SMS_API_KEY: {masked_key}"
+        return f"✅ SUCCESS! Server: {server_name}<br>Found FAST2SMS_API_KEY: {masked_key}<br>User Columns: {columns}"
     else:
-        return f"❌ ERROR! Server: {server_name}<br>The server cannot see FAST2SMS_API_KEY.<br>Keys I can see related to SMS: {similar_keys}<br>Total keys found: {len(all_keys)}"
-
-
+        return f"❌ ERROR! Server: {server_name}<br>The server cannot see FAST2SMS_API_KEY.<br>User Columns: {columns}"
 
 @app.route('/secret_db_migrate')
 def secret_db_migrate():
+    server_name = os.getenv("RENDER_SERVICE_NAME", "Local")
     # Helper to add columns to Order and User tables
+    results = []
     try:
         queries = [
             # User table migrations
             'ALTER TABLE "user" ADD COLUMN phone VARCHAR(15);',
             'ALTER TABLE "user" ADD COLUMN otp_code VARCHAR(6);',
             'ALTER TABLE "user" ADD COLUMN otp_expiry TIMESTAMP;',
-            # Set dummy phone for existing users to avoid NOT NULL issues temporarily, or just let them be NULL if the DB allows (we set nullable=False in model, but ALTER TABLE ADD COLUMN allows NULL by default unless specified).
-            
             # Order table migrations
             'ALTER TABLE "order" ADD COLUMN seller_rating INTEGER;',
             'ALTER TABLE "order" ADD COLUMN seller_review TEXT;',
@@ -997,24 +1000,21 @@ def secret_db_migrate():
         for q in queries:
             try:
                 db.session.execute(text(q))
+                db.session.commit()
+                results.append(f"✅ Success: {q}")
             except Exception as inner_e:
-                print(f"Skipping query (already exists?): {q} - Error: {inner_e}")
-                pass
-        db.session.commit()
+                db.session.rollback()
+                results.append(f"❌ Failed: {q} | Error: {str(inner_e)[:100]}")
         
-        # After adding phone, update existing users to have a temporary phone number since it's nullable=False in the model.
-        try:
-            db.session.execute(text('UPDATE "user" SET phone = id::text WHERE phone IS NULL;'))
-            db.session.commit()
-        except:
-            pass
-
-        return "Migration completed successfully! All columns added."
+        # Verify columns
+        res = db.session.execute(text("SELECT column_name FROM information_schema.columns WHERE table_name = 'user'"))
+        cols = [row[0] for row in res]
+        
+        return f"<h3>Migration Report (Server: {server_name})</h3><ul>" + "".join([f"<li>{r}</li>" for r in results]) + f"</ul><p>Current Columns in 'user': {cols}</p>"
     except Exception as e:
         import traceback
-        return f"Migration Failed: <pre>{traceback.format_exc()}</pre>"
-
-
+        return f"Migration Critical Failure: <pre>{traceback.format_exc()}</pre>"
 
 if __name__ == '__main__':
+
     socketio.run(app, debug=True, host='0.0.0.0')
