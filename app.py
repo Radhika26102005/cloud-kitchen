@@ -223,7 +223,8 @@ def login():
                 flash(f'OTP sent to {phone[-4:].rjust(10, "*")}. Check your SMS!', 'info')
             else:
                 # No SMS gateway configured
-                flash(f'[DEV MODE] Your OTP is: {otp}', 'warning')
+                flash(f'🚨 RENDER CONFIG MISSING: You must add FAST2SMS_API_KEY in Render. Falling back to Dev Mode OTP: {otp}', 'warning')
+
                 
         except Exception as e:
             print(f'SMS Error: {e}')
