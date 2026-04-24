@@ -120,7 +120,12 @@ login_manager.init_app(app)
 
 @login_manager.user_loader
 def load_user(user_id):
-    return User.query.get(int(user_id))
+    try:
+        return User.query.get(int(user_id))
+    except Exception as e:
+        # If DB schema is out of sync (e.g. missing column), log them out safely instead of crashing
+        print(f"load_user DB Error: {e}")
+        return None
 
 @app.route('/')
 def index():
