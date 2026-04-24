@@ -960,12 +960,19 @@ def secret_debug_error():
 
 @app.route('/debug_sms')
 def debug_sms():
+    server_name = os.getenv("RENDER_SERVICE_NAME", "Local")
     key = os.getenv('FAST2SMS_API_KEY')
+    all_keys = list(os.environ.keys())
+    
+    # Check for similar keys (common typos)
+    similar_keys = [k for k in all_keys if 'FAST' in k.upper() or 'SMS' in k.upper()]
+    
     if key:
         masked_key = key[:5] + "..." + key[-5:] if len(key) > 10 else "TOO SHORT"
-        return f"✅ SUCCESS: The server found the FAST2SMS API key: {masked_key}"
+        return f"✅ SUCCESS! Server: {server_name}<br>Found FAST2SMS_API_KEY: {masked_key}"
     else:
-        return "❌ ERROR: The server cannot see any FAST2SMS_API_KEY. It is completely missing."
+        return f"❌ ERROR! Server: {server_name}<br>The server cannot see FAST2SMS_API_KEY.<br>Keys I can see related to SMS: {similar_keys}<br>Total keys found: {len(all_keys)}"
+
 
 
 @app.route('/secret_db_migrate')
