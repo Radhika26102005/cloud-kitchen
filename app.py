@@ -193,20 +193,23 @@ def login():
             twilio_sid = os.getenv('TWILIO_ACCOUNT_SID')
             
             if fast2sms_key:
-                # Fast2SMS implementation
+                # Fast2SMS implementation - Using 'q' route for trial accounts
                 import requests
                 url = "https://www.fast2sms.com/dev/bulkV2"
                 querystring = {
                     "authorization": fast2sms_key,
-                    "variables_values": otp,
-                    "route": "otp",
+                    "message": f"Your Cloud Kitchen OTP is: {otp}. Valid for 10 mins.",
+                    "language": "english",
+                    "route": "q",
                     "numbers": phone.replace('+91', '').strip()
                 }
                 response = requests.request("GET", url, params=querystring)
-                if response.json().get('return'):
+                res_data = response.json()
+                if res_data.get('return'):
                     flash(f'OTP sent to {phone[-4:].rjust(10, "*")}. Check your SMS!', 'info')
                 else:
-                    raise Exception(f"Fast2SMS Error: {response.text}")
+                    # Throw error to catch block to show user what went wrong
+                    raise Exception(f"Fast2SMS rejected: {res_data.get('message', 'Unknown Error')}")
                     
             elif twilio_sid:
                 # Twilio implementation
@@ -221,11 +224,10 @@ def login():
             else:
                 # No SMS gateway configured
                 flash(f'[DEV MODE] Your OTP is: {otp}', 'warning')
-                print(f"DEV OTP for {phone}: {otp}")
                 
         except Exception as e:
             print(f'SMS Error: {e}')
-            flash(f'[DEV MODE] Your OTP is: {otp}', 'warning')
+            flash(f'[SMS FAILED - DEV MODE] {str(e)[:100]} | OTP is: {otp}', 'danger')
         return redirect(url_for('verify_otp', phone=phone))
     return render_template('login.html')
 
