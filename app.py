@@ -948,7 +948,9 @@ def handle_500(e):
     import traceback
     return f"<h1>Global Error Caught!</h1><pre>{traceback.format_exc()}</pre>", 500
 
+@app.route('/secret_debug_error/')
 @app.route('/secret_debug_error')
+
 def secret_debug_error():
     import traceback
     try:
@@ -958,7 +960,9 @@ def secret_debug_error():
     except Exception as e:
         return f"<h1>Real Error Found:</h1><pre>{traceback.format_exc()}</pre>"
 
+@app.route('/debug_sms/')
 @app.route('/debug_sms')
+
 
 def debug_sms():
     server_name = os.getenv("RENDER_SERVICE_NAME", "Local")
@@ -978,7 +982,9 @@ def debug_sms():
     else:
         return f"❌ ERROR! Server: {server_name}<br>The server cannot see FAST2SMS_API_KEY.<br>User Columns: {columns}"
 
+@app.route('/secret_db_migrate/')
 @app.route('/secret_db_migrate')
+
 def secret_db_migrate():
     server_name = os.getenv("RENDER_SERVICE_NAME", "Local")
     # Helper to add columns to Order and User tables
