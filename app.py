@@ -192,12 +192,14 @@ def login():
             fast2sms_key = os.getenv('FAST2SMS_API_KEY')
             twilio_sid = os.getenv('TWILIO_ACCOUNT_SID')
             
-            if fast2sms_key:
+            print(f"DEBUG: fast2sms_key found? {bool(fast2sms_key)}")
+            
+            if fast2sms_key and len(fast2sms_key.strip()) > 5:
                 # Fast2SMS implementation - Using 'q' route for trial accounts
                 import requests
                 url = "https://www.fast2sms.com/dev/bulkV2"
                 querystring = {
-                    "authorization": fast2sms_key,
+                    "authorization": fast2sms_key.strip(),
                     "message": f"Your Cloud Kitchen OTP is: {otp}. Valid for 10 mins.",
                     "language": "english",
                     "route": "q",
@@ -223,7 +225,8 @@ def login():
                 flash(f'OTP sent to {phone[-4:].rjust(10, "*")}. Check your SMS!', 'info')
             else:
                 # No SMS gateway configured
-                flash(f'🚨 RENDER CONFIG MISSING: You must add FAST2SMS_API_KEY in Render. Falling back to Dev Mode OTP: {otp}', 'warning')
+                flash(f'🚨 KEY MISSING! Server: {os.getenv("RENDER_SERVICE_NAME", "Local")}. Checked for FAST2SMS_API_KEY. OTP is: {otp}', 'warning')
+
 
                 
         except Exception as e:
