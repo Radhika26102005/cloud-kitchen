@@ -1,10 +1,78 @@
-{% extends 'base.html' %}
+<style>
+    .tracking-container {
+        max-width: 800px;
+        margin: 2rem auto;
+        padding: 1.5rem;
+    }
+    .status-steps {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 2rem;
+        position: relative;
+        flex-wrap: wrap; /* Fix mobile collapse */
+        gap: 1rem;
+    }
+    .step {
+        text-align: center;
+        flex: 1;
+        min-width: 80px;
+        position: relative;
+        z-index: 1;
+    }
+    .step::before {
+        content: '';
+        position: absolute;
+        top: 15px;
+        left: -50%;
+        width: 100%;
+        height: 4px;
+        background: #ddd;
+        z-index: -1;
+    }
+    .step:first-child::before { display: none; }
+    .step.active::before { background: var(--primary-color); }
+    .step-label {
+        font-size: 0.85rem;
+        font-weight: 600;
+        margin-top: 10px;
+        color: var(--text-muted);
+    }
+    .step.active .step-label { color: var(--primary-color); }
+    
+    /* Responsive Grid for Ratings */
+    .rating-grid {
+        display: grid; 
+        grid-template-columns: 1fr 1fr; 
+        gap: 2rem;
+    }
+    
+    @media (max-width: 600px) {
+        .rating-grid {
+            grid-template-columns: 1fr;
+        }
+        .status-steps {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+        }
+        .step::before { display: none; }
+    }
+</style>
 
-{% block content %}
 <div class="tracking-container">
     <h2>Order #{{ order.id }} Tracking</h2>
-    <p style="color: var(--text-muted); margin-bottom: 0.5rem;">Total Amount: ₹{{ "%.2f"|format(order.total_amount) }}</p>
-    <p style="color: var(--text-muted); margin-bottom: 2rem;"><strong>Delivery To:</strong> {{ order.delivery_address or 'Not specified' }}</p>
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
+        <div>
+            <p style="color: var(--text-muted); margin-bottom: 0.5rem;">Total Amount: ₹{{ "%.2f"|format(order.total_amount) }}</p>
+            <p style="color: var(--text-muted); margin-bottom: 2rem;"><strong>Delivery To:</strong> {{ order.delivery_address or 'Not specified' }}</p>
+        </div>
+        
+        {% if order.payment_method == 'cod' and order.status != 'Paid' and order.status != 'Delivered' %}
+        <div style="background: #fff5f0; padding: 1rem; border-radius: 12px; border: 1px solid var(--primary-color); text-align: center;">
+            <p style="font-weight: 700; color: var(--primary-color); margin-bottom: 0.5rem;">📦 CASH ON DELIVERY</p>
+            <button onclick="payCOD()" class="btn btn-primary" style="font-size: 0.9rem;">📱 Collect via UPI/Card</button>
+        </div>
+        {% endif %}
+    </div>
 
     <div class="status-steps">
         {% set statuses = ['Pending', 'Paid', 'Preparing', 'Out for Delivery', 'Delivered'] %}
@@ -12,6 +80,9 @@
         
         {% for status in statuses %}
         <div class="step {% if loop.index0 <= current_index %}active{% endif %}">
+            <div style="width: 30px; height: 30px; background: {% if loop.index0 <= current_index %}var(--primary-color){% else %}#ddd{% endif %}; border-radius: 50%; margin: 0 auto; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold;">
+                {{ loop.index }}
+            </div>
             <div class="step-label">{{ status }}</div>
         </div>
         {% endfor %}
@@ -26,96 +97,91 @@
 
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
     <script>
         const orderId = {{ order.id }};
         let map = null;
         let deliveryMarker = null;
         let homeMarker = null;
         
-        // Custom Icons for a "Wow" effect
+        function payCOD() {
+            fetch(`/collect_cod_payment/${orderId}`, { method: 'POST' })
+                .then(res => res.json())
+                .then(data => {
+                    const options = {
+                        "key": data.razorpay_key_id,
+                        "amount": data.total * 100,
+                        "currency": "INR",
+                        "name": "Cloud Kitchen",
+                        "description": "COD Payment for Order #" + data.order_id,
+                        "order_id": data.razorpay_order_id,
+                        "handler": function (response) {
+                            // After payment, mark as Paid
+                            fetch('/razorpay_verify', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    razorpay_order_id: response.razorpay_order_id,
+                                    razorpay_payment_id: response.razorpay_payment_id,
+                                    razorpay_signature: response.razorpay_signature,
+                                    addr: "{{ order.delivery_address }}",
+                                    lat: "{{ order.delivery_target_lat }}",
+                                    lng: "{{ order.delivery_target_lng }}"
+                                })
+                            }).then(() => window.location.reload());
+                        },
+                        "theme": { "color": "#ff5200" }
+                    };
+                    const rzp = new Razorpay(options);
+                    rzp.open();
+                });
+        }
+
+        // Rest of tracking JS...
         const bikeIcon = L.icon({
             iconUrl: 'https://cdn-icons-png.flaticon.com/512/3198/3198336.png',
             iconSize: [40, 40],
-            iconAnchor: [20, 20],
-            popupAnchor: [0, -20]
+            iconAnchor: [20, 20]
         });
 
         const homeIcon = L.icon({
             iconUrl: 'https://cdn-icons-png.flaticon.com/512/1239/1239525.png',
             iconSize: [40, 40],
-            iconAnchor: [20, 40],
-            popupAnchor: [0, -40]
+            iconAnchor: [20, 40]
         });
         
         function initMap(deliveryLat, deliveryLng, targetLat, targetLng) {
             document.getElementById('mapContainer').style.display = 'block';
             map = L.map('map').setView([targetLat || deliveryLat, targetLng || deliveryLng], 14);
-            L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-                attribution: '© OpenStreetMap contributors © CARTO'
-            }).addTo(map);
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png').addTo(map);
 
-            // Customer Home Marker
-            if (targetLat && targetLng) {
-                homeMarker = L.marker([targetLat, targetLng], {icon: homeIcon}).addTo(map);
-                homeMarker.bindPopup("<b>Delivery Destination</b>");
-            }
-
-            // Delivery Person Marker
-            if (deliveryLat && deliveryLng) {
-                deliveryMarker = L.marker([deliveryLat, deliveryLng], {icon: bikeIcon}).addTo(map);
-                deliveryMarker.bindPopup("<b>Your Rider is here!</b>").openPopup();
-            }
-            
+            if (targetLat && targetLng) homeMarker = L.marker([targetLat, targetLng], {icon: homeIcon}).addTo(map);
+            if (deliveryLat && deliveryLng) deliveryMarker = L.marker([deliveryLat, deliveryLng], {icon: bikeIcon}).addTo(map);
             document.getElementById('mapStatusText').innerHTML = "<span>🟢</span> Live tracking active";
         }
 
         function pollLocation() {
-            fetch(`/api/get_location/₹{orderId}`)
+            fetch(`/api/get_location/${orderId}`)
                 .then(res => res.json())
                 .then(data => {
                     if (data.status === 'Out for Delivery' && data.lat && data.lng) {
-                        if (!map) {
-                            initMap(data.lat, data.lng, data.target_lat, data.target_lng);
-                        } else {
-                            if (!deliveryMarker) {
-                                deliveryMarker = L.marker([data.lat, data.lng], {icon: bikeIcon}).addTo(map);
-                            } else {
-                                deliveryMarker.setLatLng([data.lat, data.lng]);
-                            }
-                            
-                            // Adjust map to see both
-                            if (homeMarker) {
-                                const group = new L.featureGroup([deliveryMarker, homeMarker]);
-                                map.fitBounds(group.getBounds().pad(0.3));
-                            } else {
-                                map.panTo([data.lat, data.lng]);
-                            }
+                        if (!map) initMap(data.lat, data.lng, data.target_lat, data.target_lng);
+                        else {
+                            if (!deliveryMarker) deliveryMarker = L.marker([data.lat, data.lng], {icon: bikeIcon}).addTo(map);
+                            else deliveryMarker.setLatLng([data.lat, data.lng]);
+                            if (homeMarker) map.fitBounds(new L.featureGroup([deliveryMarker, homeMarker]).getBounds().pad(0.3));
                         }
-                    } else if (data.status === 'Delivered' && map) {
-                        document.getElementById('mapStatusText').innerHTML = "<span>✅</span> Order Delivered!";
-                        if (deliveryMarker) map.removeLayer(deliveryMarker);
                     }
-                })
-                .catch(err => console.error(err));
+                });
         }
-
-        // Poll every 4 seconds for smoother movement
         setInterval(pollLocation, 4000);
         pollLocation();
-
-        // LIVE STATUS UPDATE: If the cook or rider updates the status, refresh the UI
-        socket.on('status_change', (data) => {
-            if (data.order_id == orderId) {
-                console.log("⚡ Order status updated! Refreshing status bar...");
-                window.location.reload();
-            }
-        });
     </script>
 
     <div style="margin-top: 3rem; padding-top: 2rem; border-top: 1px solid var(--border-color);">
         {% if current_user.role in ['seller', 'delivery'] %}
             <h4>Update Status</h4>
-            <form method="POST" action="{{ url_for('update_order_status', order_id=order.id) }}" style="display: flex; gap: 1rem; justify-content: center;">
+            <form method="POST" action="{{ url_for('update_order_status', order_id=order.id) }}" style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
                 <select name="status" class="form-control" style="width: auto;">
                     <option value="Pending" {% if order.status == 'Pending' %}selected{% endif %}>Pending</option>
                     <option value="Paid" {% if order.status == 'Paid' %}selected{% endif %}>Paid</option>
@@ -128,65 +194,44 @@
         {% else %}
             <p style="font-weight: 500;">Current Status: <span style="color: var(--primary-color);">{{ order.status }}</span></p>
             {% if order.status == 'Delivered' and not order.seller_rating and not order.delivery_rating %}
-                <div style="margin-top: 2rem; background: #f9f9f9; padding: 2rem; border-radius: 12px; border: 1px solid var(--border-color);">
+                <div style="margin-top: 2rem; background: #f9f9f9; padding: 1.5rem; border-radius: 12px; border: 1px solid var(--border-color);">
                     <h3 style="text-align: center; margin-bottom: 1.5rem;">Rate Your Experience 🌟</h3>
                     <form method="POST" action="{{ url_for('rate_order', order_id=order.id) }}" enctype="multipart/form-data">
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+                        <div class="rating-grid">
                             <!-- Rate Cook -->
-                            <div style="background: white; padding: 1.5rem; border-radius: 8px; box-shadow: var(--shadow);">
-                                <h4>👨‍🍳 Rate the Home Cook</h4>
-                                <div class="form-group" style="margin-top: 1rem;">
-                                    <label>Rating (1-5)</label>
-                                    <select name="seller_rating" class="form-control" required>
-                                        <option value="5">⭐⭐⭐⭐⭐ Excellent</option>
-                                        <option value="4">⭐⭐⭐⭐ Good</option>
-                                        <option value="3">⭐⭐⭐ Average</option>
-                                        <option value="2">⭐⭐ Poor</option>
-                                        <option value="1">⭐ Terrible</option>
-                                    </select>
-                                </div>
-                                <div class="form-group">
-                                    <label>Review (Optional)</label>
-                                    <textarea name="seller_review" class="form-control" rows="2" placeholder="How was the food?"></textarea>
-                                </div>
-                                <div class="form-group">
-                                    <label>Photo (Optional)</label>
-                                    <input type="file" name="seller_review_image" class="form-control" accept="image/*">
-                                </div>
+                            <div style="background: white; padding: 1rem; border-radius: 8px; box-shadow: var(--shadow);">
+                                <h4>👨‍🍳 Food</h4>
+                                <select name="seller_rating" class="form-control" required>
+                                    <option value="5">⭐⭐⭐⭐⭐</option>
+                                    <option value="4">⭐⭐⭐⭐</option>
+                                    <option value="3">⭐⭐⭐</option>
+                                    <option value="2">⭐⭐</option>
+                                    <option value="1">⭐</option>
+                                </select>
+                                <textarea name="seller_review" class="form-control" rows="2" placeholder="Review"></textarea>
+                                <input type="file" name="seller_review_image" class="form-control" accept="image/*">
                             </div>
 
                             <!-- Rate Delivery -->
-                            <div style="background: white; padding: 1.5rem; border-radius: 8px; box-shadow: var(--shadow);">
-                                <h4>🛵 Rate the Delivery Partner</h4>
-                                <div class="form-group" style="margin-top: 1rem;">
-                                    <label>Rating (1-5)</label>
-                                    <select name="delivery_rating" class="form-control" required>
-                                        <option value="5">⭐⭐⭐⭐⭐ Excellent</option>
-                                        <option value="4">⭐⭐⭐⭐ Good</option>
-                                        <option value="3">⭐⭐⭐ Average</option>
-                                        <option value="2">⭐⭐ Poor</option>
-                                        <option value="1">⭐ Terrible</option>
-                                    </select>
-                                </div>
-                                <div class="form-group">
-                                    <label>Review (Optional)</label>
-                                    <textarea name="delivery_review" class="form-control" rows="2" placeholder="How was the delivery?"></textarea>
-                                </div>
-                                <div class="form-group">
-                                    <label>Photo (Optional)</label>
-                                    <input type="file" name="delivery_review_image" class="form-control" accept="image/*">
-                                </div>
+                            <div style="background: white; padding: 1rem; border-radius: 8px; box-shadow: var(--shadow);">
+                                <h4>🛵 Delivery</h4>
+                                <select name="delivery_rating" class="form-control" required>
+                                    <option value="5">⭐⭐⭐⭐⭐</option>
+                                    <option value="4">⭐⭐⭐⭐</option>
+                                    <option value="3">⭐⭐⭐</option>
+                                    <option value="2">⭐⭐</option>
+                                    <option value="1">⭐</option>
+                                </select>
+                                <textarea name="delivery_review" class="form-control" rows="2" placeholder="Review"></textarea>
+                                <input type="file" name="delivery_review_image" class="form-control" accept="image/*">
                             </div>
                         </div>
-                        <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 2rem; padding: 1rem;">Submit Ratings ✅</button>
+                        <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1.5rem; padding: 1rem;">Submit ✅</button>
                     </form>
-                </div>
-            {% elif order.status == 'Delivered' %}
-                <div style="margin-top: 2rem; background: #e8f8f5; padding: 1.5rem; border-radius: 12px; text-align: center; border-left: 5px solid #2ecc71;">
-                    <h4 style="margin: 0; color: #2ecc71;">🌟 Thanks for rating this order!</h4>
                 </div>
             {% endif %}
         {% endif %}
     </div>
 </div>
 {% endblock %}
+

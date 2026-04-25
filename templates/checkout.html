@@ -76,16 +76,16 @@
         <div style="border-top: 1px solid var(--border-color); padding-top: 1.5rem; margin-top: 1.5rem;">
             <h4>Payment Method</h4>
             <div style="display: flex; flex-direction: column; gap: 1rem; margin-bottom: 2rem;">
-                <label style="display: flex; align-items: center; gap: 1rem; padding: 1rem; border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer;">
-                    <input type="radio" name="payment_method" value="online" checked style="width: 20px; height: 20px;">
+                <label id="label-online" style="display: flex; align-items: center; gap: 1rem; padding: 1rem; border: 2px solid var(--primary-color); border-radius: 12px; cursor: pointer; transition: all 0.3s ease; background: #fff5f0;">
+                    <input type="radio" name="payment_method" value="online" checked style="width: 20px; height: 20px;" onchange="updatePaymentUI()">
                     <div>
                         <strong style="display: block;">Pay Online (UPI, Cards, Wallet)</strong>
                         <span style="font-size: 0.85rem; color: var(--text-muted);">Securely via Razorpay</span>
                     </div>
                     <span style="margin-left: auto; font-size: 1.5rem;">💳</span>
                 </label>
-                <label style="display: flex; align-items: center; gap: 1rem; padding: 1rem; border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer;">
-                    <input type="radio" name="payment_method" value="cod" style="width: 20px; height: 20px;">
+                <label id="label-cod" style="display: flex; align-items: center; gap: 1rem; padding: 1rem; border: 1px solid var(--border-color); border-radius: 12px; cursor: pointer; transition: all 0.3s ease;">
+                    <input type="radio" name="payment_method" value="cod" style="width: 20px; height: 20px;" onchange="updatePaymentUI()">
                     <div>
                         <strong style="display: block;">Cash on Delivery (COD)</strong>
                         <span style="font-size: 0.85rem; color: var(--text-muted);">Pay when you receive your food</span>
@@ -94,6 +94,26 @@
                 </label>
             </div>
         </div>
+
+        <script>
+            function updatePaymentUI() {
+                const online = document.querySelector('input[value="online"]').checked;
+                const labelOnline = document.getElementById('label-online');
+                const labelCod = document.getElementById('label-cod');
+                
+                if (online) {
+                    labelOnline.style.border = '2px solid var(--primary-color)';
+                    labelOnline.style.background = '#fff5f0';
+                    labelCod.style.border = '1px solid var(--border-color)';
+                    labelCod.style.background = 'white';
+                } else {
+                    labelCod.style.border = '2px solid var(--primary-color)';
+                    labelCod.style.background = '#fff5f0';
+                    labelOnline.style.border = '1px solid var(--border-color)';
+                    labelOnline.style.background = 'white';
+                }
+            }
+        </script>
         
         <div style="margin: 2rem 0; text-align: center; color: var(--text-muted); font-size: 0.9rem;">
             🔐 Secure encrypted transaction

@@ -36,19 +36,23 @@ ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 app.config['REMEMBER_COOKIE_DURATION'] = 60 * 60 * 24 * 30 # 30 Days
 app.config['PERMANENT_SESSION_LIFETIME'] = 60 * 60 * 24 * 30 # 30 Days
 
-# Cloudinary Configuration (Wrapped in Try for safety)
+# Cloudinary Configuration (Refined for Render)
 try:
-    cloudinary_url = os.getenv('CLOUDINARY_URL')
-    if cloudinary_url:
-        cloudinary.config_from_url(cloudinary_url.strip())
+    c_url = os.getenv('CLOUDINARY_URL')
+    if c_url:
+        # Strip potential quotes if user pasted them by mistake
+        c_url = c_url.strip().replace('"', '').replace("'", "")
+        cloudinary.config_from_url(c_url)
     else:
+        # Fallback to individual keys
         cloudinary.config( 
           cloud_name = os.getenv('CLOUDINARY_CLOUD_NAME'), 
           api_key = os.getenv('CLOUDINARY_API_KEY'), 
-          api_secret = os.getenv('CLOUDINARY_API_SECRET') 
+          api_secret = os.getenv('CLOUDINARY_API_SECRET'),
+          secure = True
         )
 except Exception as e:
-    print(f"Cloudinary Config Error (Skipping): {e}")
+    print(f"Cloudinary Config Critical Error: {e}")
 
 # Payment Configuration
 stripe.api_key = os.getenv('STRIPE_SECRET_KEY')
@@ -345,10 +349,12 @@ def profile():
         new_url = request.form.get('profile_image_url', '').strip()
         if file and file.filename != '' and allowed_file(file.filename):
             try:
-                upload_result = cloudinary.uploader.upload(file.read())
+                # FIXED: Pass the file object directly, not file.read()
+                upload_result = cloudinary.uploader.upload(file)
                 current_user.profile_image = upload_result['secure_url']
             except Exception as e:
                 flash(f'Cloudinary Error: {e}', 'danger')
+
         elif new_url:
             current_user.profile_image = new_url
             
@@ -851,6 +857,30 @@ def razorpay_verify():
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 400
 
+@app.route('/collect_cod_payment/<int:order_id>', methods=['POST'])
+@login_required
+def collect_cod_payment(order_id):
+    """Generate a Razorpay order for a COD shipment at the door"""
+    order = Order.query.get_or_404(order_id)
+    if current_user.role != 'delivery' or order.delivery_person_id != current_user.id:
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    try:
+        razor_order = razor_client.order.create({
+            "amount": int(order.total_amount * 100),
+            "currency": "INR",
+            "payment_capture": 1
+        })
+        return jsonify({
+            'razorpay_order_id': razor_order['id'],
+            'razorpay_key_id': os.getenv("RAZORPAY_KEY_ID"),
+            'total': order.total_amount,
+            'order_id': order.id
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 400
+
+
 
 @app.route('/checkout/debug_bypass', methods=['POST'])
 @login_required
@@ -1157,8 +1187,11 @@ def secret_db_migrate():
             'ALTER TABLE "order" ADD COLUMN seller_review_image VARCHAR(250);',
             'ALTER TABLE "order" ADD COLUMN delivery_rating INTEGER;',
             'ALTER TABLE "order" ADD COLUMN delivery_review TEXT;',
-            'ALTER TABLE "order" ADD COLUMN delivery_review_image VARCHAR(250);'
+            'ALTER TABLE "order" ADD COLUMN delivery_review_image VARCHAR(250);',
+            'ALTER TABLE "order" ADD COLUMN payment_method VARCHAR(50) DEFAULT \'online\';',
+            'ALTER TABLE "order" ADD COLUMN is_cod BOOLEAN DEFAULT FALSE;'
         ]
+
         for q in queries:
             try:
                 db.session.execute(text(q))

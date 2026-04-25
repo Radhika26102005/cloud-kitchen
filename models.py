@@ -56,6 +56,8 @@ class Order(db.Model):
     delivery_target_lat = db.Column(db.Float, nullable=True) # Customer exact lat
     delivery_target_lng = db.Column(db.Float, nullable=True) # Customer exact lng
     created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
+    payment_method = db.Column(db.String(50), default='online') # online, cod
+    is_cod = db.Column(db.Boolean, default=False)
     
     # Reviews directly tied to the Order
     seller_rating = db.Column(db.Integer, nullable=True)
