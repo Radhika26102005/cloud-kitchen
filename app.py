@@ -983,11 +983,14 @@ def secret_db_migrate():
             'ALTER TABLE "user" ADD COLUMN phone VARCHAR(15);',
             'ALTER TABLE "user" ADD COLUMN otp_code VARCHAR(6);',
             'ALTER TABLE "user" ADD COLUMN otp_expiry TIMESTAMP;',
+            # Cleanup: Provide dummy phone for existing users so we can set NOT NULL
+            "UPDATE \"user\" SET phone = '+910000000000' WHERE phone IS NULL;",
             # Make columns mandatory in DB
             'ALTER TABLE "user" ALTER COLUMN email SET NOT NULL;',
             'ALTER TABLE "user" ALTER COLUMN phone SET NOT NULL;',
             'ALTER TABLE "user" ALTER COLUMN password DROP NOT NULL;',
             # Order table migrations
+
 
             'ALTER TABLE "order" ADD COLUMN seller_rating INTEGER;',
             'ALTER TABLE "order" ADD COLUMN seller_review TEXT;',
