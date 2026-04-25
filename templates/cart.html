@@ -21,7 +21,19 @@
                 <tr style="border-bottom: 1px solid var(--border-color);">
                     <td style="padding: 1rem 0; font-weight: 600;">{{ entry.food.name }}</td>
                     <td style="padding: 1rem 0;">₹{{ "%.2f"|format(entry.food.price) }}</td>
-                    <td style="padding: 1rem 0;">{{ entry.cart_item.quantity }}</td>
+                    <td style="padding: 1rem 0;">
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <form method="POST" action="{{ url_for('update_cart', item_id=entry.cart_item.id) }}" style="display: inline;">
+                                <input type="hidden" name="action" value="decrease">
+                                <button type="submit" class="btn btn-outline" style="padding: 0.2rem 0.5rem; min-width: 30px;">-</button>
+                            </form>
+                            <span style="font-weight: 600; min-width: 20px; text-align: center;">{{ entry.cart_item.quantity }}</span>
+                            <form method="POST" action="{{ url_for('update_cart', item_id=entry.cart_item.id) }}" style="display: inline;">
+                                <input type="hidden" name="action" value="increase">
+                                <button type="submit" class="btn btn-outline" style="padding: 0.2rem 0.5rem; min-width: 30px;">+</button>
+                            </form>
+                        </div>
+                    </td>
                     <td style="padding: 1rem 0; font-weight: 700;">₹{{ "%.2f"|format(entry.subtotal) }}</td>
                     <td style="padding: 1rem 0;">
                         <form method="POST" action="{{ url_for('remove_from_cart', cart_id=entry.cart_item.id) }}" style="margin: 0;">

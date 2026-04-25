@@ -314,9 +314,14 @@ def profile():
     if request.method == 'POST':
         # Update user profile
         current_user.username = request.form.get('username', current_user.username)
-        current_user.email = request.form.get('email', '').strip() or None
+        current_user.email = request.form.get('email', '').strip() or current_user.email
+        current_user.phone = request.form.get('phone', current_user.phone).strip()
         current_user.location = request.form.get('location', current_user.location)
         
+        # Normalize phone
+        if current_user.phone and not current_user.phone.startswith('+91'):
+            current_user.phone = '+91' + current_user.phone.lstrip('0')
+            
         # Handle profile image update
         file = request.files.get('profile_image')
         new_url = request.form.get('profile_image_url', '').strip()
@@ -332,6 +337,7 @@ def profile():
         db.session.commit()
         flash('Profile updated successfully!', 'success')
         return redirect(url_for('profile'))
+
     return render_template('profile.html')
 
 @app.route('/rate_order/<int:order_id>', methods=['POST'])
@@ -644,6 +650,26 @@ def remove_from_cart(cart_id):
         db.session.delete(c)
         db.session.commit()
     return redirect(url_for('view_cart'))
+
+@app.route('/update_cart/<int:item_id>', methods=['POST'])
+@login_required
+def update_cart(item_id):
+    item = CartItem.query.get_or_404(item_id)
+    if item.customer_id != current_user.id:
+        return redirect(url_for('view_cart'))
+        
+    action = request.form.get('action')
+    if action == 'increase':
+        item.quantity += 1
+    elif action == 'decrease':
+        if item.quantity > 1:
+            item.quantity -= 1
+        else:
+            db.session.delete(item)
+            
+    db.session.commit()
+    return redirect(url_for('view_cart'))
+
 
 @app.route('/checkout', methods=['GET', 'POST'])
 @login_required
