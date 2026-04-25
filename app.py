@@ -1210,6 +1210,25 @@ def secret_db_migrate():
         import traceback
         return f"Migration Critical Failure: <pre>{traceback.format_exc()}</pre>"
 
+@app.route('/debug_db_status')
+def debug_db_status():
+    uri = app.config['SQLALCHEMY_DATABASE_URI']
+    db_type = "POSTGRES" if "postgresql" in uri else "SQLITE (TEMPORARY - DATA WILL BE LOST)"
+    
+    try:
+        user_count = User.query.count()
+        food_count = FoodItem.query.count()
+        return f"""
+        <h1>Database Status</h1>
+        <p><b>Current DB Type:</b> {db_type}</p>
+        <p><b>Users in DB:</b> {user_count}</p>
+        <p><b>Dishes in DB:</b> {food_count}</p>
+        <hr>
+        <p><i>Note: If it says SQLITE, you must add DATABASE_URL to Render Environment variables.</i></p>
+        """
+    except Exception as e:
+        return f"Error: {str(e)}"
+
 if __name__ == '__main__':
 
     socketio.run(app, debug=True, host='0.0.0.0')
