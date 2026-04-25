@@ -36,15 +36,30 @@ ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 app.config['REMEMBER_COOKIE_DURATION'] = 60 * 60 * 24 * 30 # 30 Days
 app.config['PERMANENT_SESSION_LIFETIME'] = 60 * 60 * 24 * 30 # 30 Days
 
-# Cloudinary Configuration (Refined for Render)
+# Cloudinary Configuration (Ultra-Robust for Render)
 try:
     c_url = os.getenv('CLOUDINARY_URL')
-    if c_url:
-        # Strip potential quotes if user pasted them by mistake
-        c_url = c_url.strip().replace('"', '').replace("'", "")
-        cloudinary.config_from_url(c_url)
+    if c_url and 'cloudinary://' in c_url:
+        # Manually parse to be 100% sure
+        clean_url = c_url.strip().replace('"', '').replace("'", "")
+        # format: cloudinary://api_key:api_secret@cloud_name
+        parts = clean_url.replace('cloudinary://', '').split('@')
+        if len(parts) == 2:
+            creds = parts[0].split(':')
+            cloud_name = parts[1]
+            if len(creds) == 2:
+                cloudinary.config(
+                    cloud_name = cloud_name,
+                    api_key = creds[0],
+                    api_secret = creds[1],
+                    secure = True
+                )
+                print(f"Cloudinary Configured Manually for: {cloud_name}")
+            else:
+                cloudinary.config_from_url(clean_url)
+        else:
+            cloudinary.config_from_url(clean_url)
     else:
-        # Fallback to individual keys
         cloudinary.config( 
           cloud_name = os.getenv('CLOUDINARY_CLOUD_NAME'), 
           api_key = os.getenv('CLOUDINARY_API_KEY'), 
@@ -52,7 +67,7 @@ try:
           secure = True
         )
 except Exception as e:
-    print(f"Cloudinary Config Critical Error: {e}")
+    print(f"Cloudinary Config Error: {e}")
 
 # Payment Configuration
 stripe.api_key = os.getenv('STRIPE_SECRET_KEY')
