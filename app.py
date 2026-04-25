@@ -147,6 +147,7 @@ def index():
         
         try:
             query = FoodItem.query.join(User, FoodItem.seller_id == User.id).filter(User.is_open == True, FoodItem.quantity > 0)
+            
             if search:
                 query = query.filter(FoodItem.name.ilike(f'%{search}%'))
             if is_veg:
@@ -156,8 +157,18 @@ def index():
             if category:
                 query = query.filter(FoodItem.category == category)
             
+            # Sorting logic
+            sort_by = request.args.get('sort_by', 'newest')
+            if sort_by == 'price_low':
+                query = query.order_by(FoodItem.price.asc())
+            elif sort_by == 'price_high':
+                query = query.order_by(FoodItem.price.desc())
+            else:
+                query = query.order_by(FoodItem.id.desc())
+
             items = query.all()
-            recommendations = FoodItem.query.filter(FoodItem.quantity > 0).limit(4).all()
+            recommendations = FoodItem.query.filter(FoodItem.quantity > 0).order_by(func.random()).limit(4).all()
+
         except Exception as db_err:
             print(f"DB Query Error: {db_err}")
 
@@ -577,10 +588,26 @@ def delete_food(item_id):
 @app.route('/food/<int:item_id>', methods=['GET', 'POST'])
 def food_detail(item_id):
     item = FoodItem.query.get_or_404(item_id)
-    reviews = Review.query.filter_by(food_item_id=item.id).all()
+    reviews = Review.query.filter_by(food_item_id=item.id).order_by(Review.id.desc()).all()
     
+    # Check if current user has ordered this item and it was delivered
+    can_review = False
+    if current_user.is_authenticated:
+        delivered_orders = Order.query.filter_by(customer_id=current_user.id, status='Delivered').all()
+        for order in delivered_orders:
+            for o_item in order.items:
+                if o_item.food_item_id == item.id:
+                    can_review = True
+                    break
+            if can_review: break
+
     if request.method == 'POST' and current_user.is_authenticated:
+        if not can_review:
+            flash('You can only review items you have ordered and received.', 'warning')
+            return redirect(url_for('food_detail', item_id=item.id))
+            
         if 'rating' in request.form:
+
             # Submit review
             rating = int(request.form.get('rating'))
             comment = request.form.get('comment')
@@ -607,7 +634,8 @@ def food_detail(item_id):
             flash('Review added successfully!', 'success')
             return redirect(url_for('food_detail', item_id=item.id))
             
-    return render_template('food_detail.html', item=item, reviews=reviews)
+    return render_template('food_detail.html', item=item, reviews=reviews, can_review=can_review)
+
 
 @app.route('/cart/add/<int:item_id>', methods=['POST'])
 @login_required
