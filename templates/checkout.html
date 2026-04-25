@@ -116,22 +116,39 @@
 
     // Search Location Function
     window.searchLocation = function() {
-        const query = document.getElementById('mapSearchInput').value;
+        let query = document.getElementById('mapSearchInput').value;
         if(!query) return;
         
-        fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`)
+        // Append India to narrow down global search
+        if(!query.toLowerCase().includes('india')) {
+            query += ', India';
+        }
+        
+        fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&addressdetails=1&limit=1`)
             .then(res => res.json())
             .then(data => {
                 if(data && data.length > 0) {
                     const lat = data[0].lat;
                     const lon = data[0].lon;
                     updatePin(lat, lon);
-                    pickerMap.setView([lat, lon], 18); // Zoom 18 for Building Precision
+                    pickerMap.setView([lat, lon], 18);
                 } else {
-                    alert("Location not found. Please try a different search.");
+                    alert("Location not found. Try adding your city name (e.g. 'Sector 15, Rohini').");
                 }
+            })
+            .catch(err => {
+                console.error("Search failed", err);
+                alert("Search service is temporarily busy. Please try again or click the map manually.");
             });
     }
+
+    // Add Enter Key Support
+    document.getElementById('mapSearchInput').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            searchLocation();
+        }
+    });
 
     window.useGPS = function() {
         if (navigator.geolocation) {
