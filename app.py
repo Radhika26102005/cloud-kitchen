@@ -212,11 +212,18 @@ def login():
     if request.method == 'POST':
         identifier = request.form.get('identifier', '').strip()
         
+        # NORMALIZE: If it looks like a 10-digit Indian phone, add +91
+        import re
+        if re.match(r'^\d{10}$', identifier):
+            identifier = '+91' + identifier
+        elif re.match(r'^0\d{10}$', identifier):
+            identifier = '+91' + identifier[1:]
+            
         # Search by email OR phone
         user = User.query.filter((User.email == identifier) | (User.phone == identifier)).first()
         
         if not user:
-            flash('No account found with this email or phone number. Please register first.', 'danger')
+            flash(f'No account found with "{identifier}". Please register first.', 'danger')
             return render_template('login.html')
 
         # Generate and store OTP
@@ -1259,17 +1266,23 @@ def debug_db_status():
     except Exception as e:
         ping_result = f"API PING FAILED ❌: {str(e)}"
 
+    # Current User Info
+    user_info = "Not Logged In"
+    if current_user.is_authenticated:
+        user_info = f"ID: {current_user.id} | Name: {current_user.username} | Phone: {current_user.phone}"
+
     try:
         user_count = User.query.count()
         food_count = FoodItem.query.count()
         return f"""
         <h1>System Status</h1>
         <p><b>Database:</b> {db_type} (Users: {user_count}, Dishes: {food_count})</p>
+        <p><b>Current Session:</b> {user_info}</p>
         <p><b>Cloudinary (Images):</b> {c_status}</p>
         <p><b>Cloudinary API Ping:</b> {ping_result}</p>
         <hr>
         <p><b>Debug Cloudinary URL (Masked):</b> {c_url[:15]}...{c_url[-5:] if len(c_url)>10 else ''}</p>
-        <p><i>If Ping fails, check if your API Secret is correct in the URL.</i></p>
+        <p><i>Check if 'Current Session' shows the same ID on both laptop and phone!</i></p>
         """
     except Exception as e:
         return f"Error: {str(e)}"
