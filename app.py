@@ -193,12 +193,15 @@ def index():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    """Step 1: Enter email to receive OTP"""
+    """Step 1: Enter email or phone to receive OTP"""
     if request.method == 'POST':
-        email = request.form.get('email', '').strip()
-        user = User.query.filter_by(email=email).first()
+        identifier = request.form.get('identifier', '').strip()
+        
+        # Search by email OR phone
+        user = User.query.filter((User.email == identifier) | (User.phone == identifier)).first()
+        
         if not user:
-            flash('No account found with this email address. Please register first.', 'danger')
+            flash('No account found with this email or phone number. Please register first.', 'danger')
             return render_template('login.html')
 
         # Generate and store OTP
@@ -208,24 +211,27 @@ def login():
         user.otp_code = otp
         user.otp_expiry = datetime.utcnow() + timedelta(minutes=10)
         db.session.commit()
-        # Send OTP via Email
-        try:
-            if not app.config['MAIL_USERNAME'] or not app.config['MAIL_PASSWORD']:
-                flash(f'🚨 EMAIL NOT CONFIGURED: Using Dev Mode OTP: {otp}', 'warning')
-            else:
-                msg = Message(
-                    subject="Your Cloud Kitchen Verification Code",
-                    recipients=[user.email],
-                    body=f"Hello {user.username},\n\nYour verification code is: {otp}\n\nValid for 10 minutes.",
-                    sender=app.config['MAIL_DEFAULT_SENDER']
-                )
-
-                mail.send(msg)
-                flash(f'Verification code sent to your email: {user.email}', 'info')
-        except Exception as e:
-            flash(f'[EMAIL FAILED] {str(e)[:100]} | OTP is: {otp}', 'danger')
         
-        return redirect(url_for('verify_otp', email=email))
+        # Send OTP via Email (if email exists)
+        try:
+            if user.email:
+                if not app.config['MAIL_USERNAME'] or not app.config['MAIL_PASSWORD']:
+                    flash(f'🚨 EMAIL NOT CONFIGURED: Using Dev Mode OTP: {otp}', 'warning')
+                else:
+                    msg = Message(
+                        subject="Your Cloud Kitchen Verification Code",
+                        recipients=[user.email],
+                        body=f"Hello {user.username},\n\nYour verification code is: {otp}\n\nValid for 10 minutes.",
+                        sender=app.config['MAIL_DEFAULT_SENDER']
+                    )
+                    mail.send(msg)
+                    flash(f'Verification code sent to your email: {user.email}', 'info')
+            else:
+                flash(f'Phone Login: Using Dev Mode OTP: {otp}', 'warning')
+        except Exception as e:
+            flash(f'[OTP NOT SENT] Please use this code: {otp}', 'danger')
+        
+        return redirect(url_for('verify_otp', email=user.email or user.phone))
     return render_template('login.html')
 
 
@@ -526,7 +532,7 @@ def add_food():
                     image_url = upload_result['secure_url']
                 except Exception as e:
                     print(f"Cloudinary Upload Error: {e}")
-                    # Fallback: use default image
+                    flash(f"📸 Image upload failed: {str(e)[:100]}", "warning")
         elif request.form.get('image_url'):
             image_url = request.form.get('image_url')
         
