@@ -538,16 +538,26 @@ def add_food():
         category = request.form.get('category')
         image_url = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&h=500&fit=crop'
         
+        # Ensure Cloudinary is configured in this thread/worker
+        if not cloudinary.config().api_key:
+            c_url = os.getenv('CLOUDINARY_URL')
+            if c_url:
+                cloudinary.config_from_url(c_url.strip().replace('"', '').replace("'", ""))
+        
         # Handle File Upload → Cloudinary (Permanent Storage)
         if 'image_file' in request.files:
             file = request.files['image_file']
             if file and allowed_file(file.filename):
                 try:
+                    # Explicitly check keys before calling upload
+                    if not cloudinary.config().api_key:
+                        raise Exception("Cloudinary API Key is missing in this worker context.")
+                        
                     upload_result = cloudinary.uploader.upload(file)
                     image_url = upload_result['secure_url']
                 except Exception as e:
                     print(f"Cloudinary Upload Error: {e}")
-                    flash(f"📸 Image upload failed: {str(e)[:100]}", "warning")
+                    flash(f"📸 Image upload failed: {str(e)}", "warning")
         elif request.form.get('image_url'):
             image_url = request.form.get('image_url')
         
