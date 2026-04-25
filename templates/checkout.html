@@ -171,6 +171,37 @@
         updatePin(e.latlng.lat, e.latlng.lng);
     });
 
+    // Sync form fields to Map (Pinpoint according to filled details)
+    function syncFieldsToMap() {
+        const flat = document.querySelector('input[name="flat"]').value;
+        const street = document.querySelector('input[name="street"]').value;
+        const pincode = document.getElementById('pincode').value;
+        
+        if (street.length > 5 || (pincode.length === 6)) {
+            const query = `${street} ${pincode} India`;
+            fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`)
+                .then(res => res.json())
+                .then(data => {
+                    if(data && data.length > 0) {
+                        const lat = data[0].lat;
+                        const lon = data[0].lon;
+                        
+                        // Update marker without triggering reverse geocode (to avoid loops)
+                        if (pickerMarker) pickerMap.removeLayer(pickerMarker);
+                        pickerMarker = L.marker([lat, lon]).addTo(pickerMap);
+                        document.getElementById('target_lat').value = lat;
+                        document.getElementById('target_lng').value = lon;
+                        pickerMap.panTo([lat, lon]);
+                    }
+                });
+        }
+    }
+
+    document.querySelector('input[name="street"]').addEventListener('blur', syncFieldsToMap);
+    document.getElementById('pincode').addEventListener('input', function() {
+        if(this.value.length === 6) syncFieldsToMap();
+    });
+
     document.querySelector('#checkoutForm').addEventListener('submit', function(e) {
         if (!document.getElementById('target_lat').value) {
             e.preventDefault();
