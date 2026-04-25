@@ -203,8 +203,9 @@ def login():
             flash(f'[EMAIL FAILED] {str(e)[:100]} | OTP is: {otp}', 'danger')
         
         return redirect(url_for('verify_otp', phone=phone))
-))
+
     return render_template('login.html')
+
 
 @app.route('/verify_otp', methods=['GET', 'POST'])
 def verify_otp():
