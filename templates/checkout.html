@@ -100,20 +100,26 @@
                 const online = document.querySelector('input[value="online"]').checked;
                 const labelOnline = document.getElementById('label-online');
                 const labelCod = document.getElementById('label-cod');
+                const submitBtn = document.getElementById('submitBtn');
                 
                 if (online) {
                     labelOnline.style.border = '2px solid var(--primary-color)';
                     labelOnline.style.background = '#fff5f0';
                     labelCod.style.border = '1px solid var(--border-color)';
                     labelCod.style.background = 'white';
+                    submitBtn.innerHTML = 'Proceed to Pay Online 💳';
                 } else {
                     labelCod.style.border = '2px solid var(--primary-color)';
                     labelCod.style.background = '#fff5f0';
                     labelOnline.style.border = '1px solid var(--border-color)';
                     labelOnline.style.background = 'white';
+                    submitBtn.innerHTML = 'Place Order (Cash on Delivery) 🚀';
                 }
             }
+            // Run on load to set initial state
+            window.addEventListener('DOMContentLoaded', updatePaymentUI);
         </script>
+
         
         <div style="margin: 2rem 0; text-align: center; color: var(--text-muted); font-size: 0.9rem;">
             🔐 Secure encrypted transaction
