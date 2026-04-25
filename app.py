@@ -1219,18 +1219,22 @@ def secret_db_migrate():
 @app.route('/debug_db_status')
 def debug_db_status():
     uri = app.config['SQLALCHEMY_DATABASE_URI']
-    db_type = "POSTGRES" if "postgresql" in uri else "SQLITE (TEMPORARY - DATA WILL BE LOST)"
+    db_type = "POSTGRES" if "postgresql" in uri else "SQLITE (TEMPORARY)"
+    
+    # Check Cloudinary
+    c_url = os.getenv('CLOUDINARY_URL', 'NOT FOUND')
+    c_status = "Configured ✅" if c_url != 'NOT FOUND' and 'cloudinary://' in c_url else "NOT CONFIGURED ❌"
     
     try:
         user_count = User.query.count()
         food_count = FoodItem.query.count()
         return f"""
-        <h1>Database Status</h1>
-        <p><b>Current DB Type:</b> {db_type}</p>
-        <p><b>Users in DB:</b> {user_count}</p>
-        <p><b>Dishes in DB:</b> {food_count}</p>
+        <h1>System Status</h1>
+        <p><b>Database:</b> {db_type} (Users: {user_count}, Dishes: {food_count})</p>
+        <p><b>Cloudinary (Images):</b> {c_status}</p>
         <hr>
-        <p><i>Note: If it says SQLITE, you must add DATABASE_URL to Render Environment variables.</i></p>
+        <p><b>Debug Cloudinary URL:</b> {c_url[:15]}...{c_url[-5:] if len(c_url)>10 else ''}</p>
+        <p><i>If Cloudinary says NOT CONFIGURED, you must add CLOUDINARY_URL to Render.</i></p>
         """
     except Exception as e:
         return f"Error: {str(e)}"
