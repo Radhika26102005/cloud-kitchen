@@ -155,7 +155,7 @@ def index():
             if max_price:
                 query = query.filter(FoodItem.price <= float(max_price))
             if category:
-                query = query.filter(FoodItem.category == category)
+                query = query.filter(FoodItem.category.ilike(category))
             
             # Sorting logic
             sort_by = request.args.get('sort_by', 'newest')
@@ -166,9 +166,12 @@ def index():
             else:
                 query = query.order_by(FoodItem.id.desc())
 
-            items = query.all()
-            recommendations = FoodItem.query.filter(FoodItem.quantity > 0).order_by(func.random()).limit(4).all()
-
+            all_filtered_items = query.all()
+            
+            # Use top 4 for recommendations, the rest for food_items
+            recommendations = all_filtered_items[:4]
+            items = all_filtered_items[4:]
+            
         except Exception as db_err:
             print(f"DB Query Error: {db_err}")
 
