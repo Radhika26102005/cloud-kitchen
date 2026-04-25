@@ -7,12 +7,13 @@
         <h2 style="margin: 0.5rem 0 0.3rem;">Enter OTP</h2>
         <p style="color: var(--text-muted); font-size: 0.95rem;">
             We sent a 6-digit code to<br>
-            <strong style="color: var(--text-main);">{{ phone }}</strong>
+            <strong style="color: var(--text-main);">{{ email }}</strong>
         </p>
     </div>
 
     <form method="POST">
-        <input type="hidden" name="phone" value="{{ phone }}">
+        <input type="hidden" name="email" value="{{ email }}">
+
 
         <div class="form-group" style="text-align: center;">
             <label style="font-weight: 600; display: block; margin-bottom: 1rem;">Enter 6-digit OTP</label>

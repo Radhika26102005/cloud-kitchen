@@ -171,16 +171,14 @@ def index():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    """Step 1: Enter phone number to receive OTP"""
+    """Step 1: Enter email to receive OTP"""
     if request.method == 'POST':
-        phone = request.form.get('phone', '').strip()
-        # Normalize: add +91 if not present
-        if phone and not phone.startswith('+'):
-            phone = '+91' + phone.lstrip('0')
-        user = User.query.filter_by(phone=phone).first()
+        email = request.form.get('email', '').strip()
+        user = User.query.filter_by(email=email).first()
         if not user:
-            flash('No account found with this phone number. Please register first.', 'danger')
+            flash('No account found with this email address. Please register first.', 'danger')
             return render_template('login.html')
+
         # Generate and store OTP
         import random
         from datetime import datetime, timedelta
@@ -205,19 +203,21 @@ def login():
         except Exception as e:
             flash(f'[EMAIL FAILED] {str(e)[:100]} | OTP is: {otp}', 'danger')
         
-        return redirect(url_for('verify_otp', phone=phone))
-
+        return redirect(url_for('verify_otp', email=email))
     return render_template('login.html')
+
 
 
 @app.route('/verify_otp', methods=['GET', 'POST'])
 def verify_otp():
     """Step 2: Enter OTP to complete login"""
     from datetime import datetime
-    phone = request.args.get('phone') or request.form.get('phone')
+    email = request.args.get('email') or request.form.get('email')
+
     if request.method == 'POST':
         entered_otp = request.form.get('otp', '').strip()
-        user = User.query.filter_by(phone=phone).first()
+        user = User.query.filter_by(email=email).first()
+
         if not user:
             flash('Session expired. Please try again.', 'danger')
             return redirect(url_for('login'))
@@ -235,7 +235,8 @@ def verify_otp():
             return redirect(url_for('index'))
         else:
             flash('Invalid or expired OTP. Please try again.', 'danger')
-    return render_template('verify_otp.html', phone=phone)
+    return render_template('verify_otp.html', email=email)
+
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():

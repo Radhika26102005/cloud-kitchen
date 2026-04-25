@@ -3,26 +3,23 @@
 {% block content %}
 <div class="form-container" style="max-width: 420px;">
     <div style="text-align: center; margin-bottom: 2rem;">
-        <div style="font-size: 3rem;">📱</div>
-        <h2 style="margin: 0.5rem 0 0.3rem;">Login with Phone</h2>
-        <p style="color: var(--text-muted); font-size: 0.95rem;">We'll send a 6-digit OTP to your number</p>
+        <div style="font-size: 3rem;">📧</div>
+        <h2 style="margin: 0.5rem 0 0.3rem;">Login with Email</h2>
+        <p style="color: var(--text-muted); font-size: 0.95rem;">We'll send a 6-digit OTP to your inbox</p>
     </div>
 
     <form method="POST">
         <div class="form-group">
-            <label style="font-weight: 600;">📞 Mobile Number</label>
-            <div style="display: flex; gap: 0.5rem; align-items: center;">
-                <span style="background: #f0f0f0; border: 1px solid var(--border-color); padding: 0.75rem 1rem; border-radius: 8px; font-weight: 600; color: #333;">+91</span>
-                <input type="tel" name="phone" class="form-control" placeholder="9876543210" 
-                       pattern="[0-9]{10}" maxlength="10" required
-                       style="letter-spacing: 2px; font-size: 1.1rem; font-weight: 600;">
-            </div>
-            <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.4rem;">Enter 10-digit number without country code</p>
+            <label style="font-weight: 600;">📧 Email Address</label>
+            <input type="email" name="email" class="form-control" placeholder="example@gmail.com" required
+                   style="font-size: 1rem; padding: 0.8rem;">
+            <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.4rem;">Use the email you registered with</p>
         </div>
 
         <button type="submit" class="btn btn-primary" style="width: 100%; padding: 1rem; font-size: 1.1rem; border-radius: 10px; margin-top: 0.5rem;">
             Send OTP 🚀
         </button>
+
     </form>
 
     <p style="text-align: center; margin-top: 1.5rem; color: var(--text-muted);">
