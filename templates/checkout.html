@@ -23,7 +23,7 @@
         </div>
     </div>
     
-    <form method="POST">
+    <form method="POST" id="checkoutForm">
         
         <!-- Delivery Details -->
         <div style="border-top: 1px solid var(--border-color); padding-top: 1.5rem; margin-top: 1.5rem;">
@@ -31,18 +31,18 @@
             
             <label>Pinpoint Exact Location (Required)</label>
             <div id="locPickerMap" style="height: 250px; width: 100%; border-radius: 8px; margin-bottom: 1rem; border: 1px solid var(--border-color);"></div>
-            <input type="hidden" name="target_lat" id="target_lat" required>
-            <input type="hidden" name="target_lng" id="target_lng" required>
+            <input type="hidden" name="target_lat" id="target_lat" required value="{{ lat or '' }}">
+            <input type="hidden" name="target_lng" id="target_lng" required value="{{ lng or '' }}">
             <p id="mapError" style="color: red; font-size: 0.9rem; display: none;">Please click on the map to set your delivery location.</p>
 
             <div style="display: flex; gap: 1rem; margin-top: 1rem;">
                 <div class="form-group" style="flex: 1;">
                     <label>Flat/House No., Building</label>
-                    <input type="text" name="flat" class="form-control" required>
+                    <input type="text" name="flat" class="form-control" required value="{{ delivery_address.split(',')[0] if delivery_address else '' }}">
                 </div>
                 <div class="form-group" style="flex: 1;">
                     <label>Street/Area</label>
-                    <input type="text" name="street" class="form-control" required>
+                    <input type="text" name="street" class="form-control" required value="{{ delivery_address.split(',')[1] if delivery_address and ',' in delivery_address else '' }}">
                 </div>
             </div>
             <div class="form-group">
@@ -51,22 +51,26 @@
             </div>
         </div>
 
-        <!-- Mock Payment Fields -->
+        <!-- Payment Method Selection -->
         <div style="border-top: 1px solid var(--border-color); padding-top: 1.5rem; margin-top: 1.5rem;">
-            <h4>Payment Details (Secure Transaction)</h4>
-            <div class="form-group">
-                <label>Card Number</label>
-                <input type="text" class="form-control" placeholder="XXXX XXXX XXXX XXXX" required>
-            </div>
-            <div style="display: flex; gap: 1rem;">
-                <div class="form-group" style="flex: 1;">
-                    <label>Expiry</label>
-                    <input type="text" class="form-control" placeholder="MM/YY" required>
-                </div>
-                <div class="form-group" style="flex: 1;">
-                    <label>CVV</label>
-                    <input type="text" class="form-control" placeholder="123" required>
-                </div>
+            <h4>Payment Method</h4>
+            <div style="display: flex; flex-direction: column; gap: 1rem; margin-bottom: 2rem;">
+                <label style="display: flex; align-items: center; gap: 1rem; padding: 1rem; border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer;">
+                    <input type="radio" name="payment_method" value="online" checked style="width: 20px; height: 20px;">
+                    <div>
+                        <strong style="display: block;">Pay Online (UPI, Cards, Wallet)</strong>
+                        <span style="font-size: 0.85rem; color: var(--text-muted);">Securely via Razorpay</span>
+                    </div>
+                    <span style="margin-left: auto; font-size: 1.5rem;">💳</span>
+                </label>
+                <label style="display: flex; align-items: center; gap: 1rem; padding: 1rem; border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer;">
+                    <input type="radio" name="payment_method" value="cod" style="width: 20px; height: 20px;">
+                    <div>
+                        <strong style="display: block;">Cash on Delivery (COD)</strong>
+                        <span style="font-size: 0.85rem; color: var(--text-muted);">Pay when you receive your food</span>
+                    </div>
+                    <span style="margin-left: auto; font-size: 1.5rem;">💵</span>
+                </label>
             </div>
         </div>
         
@@ -74,24 +78,11 @@
             🔐 Secure encrypted transaction
         </div>
         
-        <button type="submit" class="btn btn-primary" style="width: 100%; font-size: 1.1rem; padding: 1rem;">Pay & Place Order</button>
-        
-        <!-- Developer Bypass (Only visible to Admin) -->
-        {% if current_user.email == 'admin@cloudkitchen.com' %}
-        <div style="margin-top: 2rem; border-top: 1px dashed #f1c40f; padding-top: 1rem;">
-            <p style="color: #f39c12; font-size: 0.9rem;">🛠️ <strong>Dev Mode:</strong> You can skip payment for testing.</p>
-            <form action="{{ url_for('debug_checkout_bypass') }}" method="POST">
-                <input type="hidden" name="target_lat" id="bypass_lat">
-                <input type="hidden" name="target_lng" id="bypass_lng">
-                <input type="hidden" name="flat" id="bypass_flat">
-                <input type="hidden" name="street" id="bypass_street">
-                <button type="submit" class="btn" style="background: #f1c40f; color: black; width: 100%;">
-                    ⚡ Developer Bypass (Skip Payment)
-                </button>
-            </form>
-        </div>
-        {% endif %}
+        <button type="submit" class="btn btn-primary" id="submitBtn" style="width: 100%; font-size: 1.1rem; padding: 1rem;">
+            {% if razorpay_order_id %}Confirm Payment{% else %}Place Order 🚀{% endif %}
+        </button>
     </form>
+
 </div>
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -135,11 +126,57 @@
             }).catch(err => console.error("Geocoding failed", err));
     });
 
-    document.querySelector('form').addEventListener('submit', function(e) {
+    document.querySelector('#checkoutForm').addEventListener('submit', function(e) {
         if (!document.getElementById('target_lat').value) {
             e.preventDefault();
             document.getElementById('mapError').style.display = 'block';
         }
     });
 </script>
+
+{% if razorpay_order_id %}
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script>
+    const options = {
+        "key": "{{ razorpay_key_id }}",
+        "amount": "{{ total * 100 }}",
+        "currency": "INR",
+        "name": "Cloud Kitchen",
+        "description": "Order Payment",
+        "order_id": "{{ razorpay_order_id }}",
+        "handler": function (response) {
+            // Send payment details to backend for verification
+            fetch('/razorpay_verify', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    razorpay_order_id: response.razorpay_order_id,
+                    razorpay_payment_id: response.razorpay_payment_id,
+                    razorpay_signature: response.razorpay_signature,
+                    lat: "{{ lat }}",
+                    lng: "{{ lng }}",
+                    addr: "{{ delivery_address }}"
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    window.location.href = "/order_tracking/" + data.order_id;
+                } else {
+                    alert("Payment Verification Failed: " + data.message);
+                }
+            });
+        },
+        "prefill": {
+            "name": "{{ current_user.username }}",
+            "email": "{{ current_user.email }}",
+            "contact": "{{ current_user.phone }}"
+        },
+        "theme": { "color": "#ff5200" }
+    };
+    const rzp = new Razorpay(options);
+    rzp.open();
+</script>
+{% endif %}
+
 {% endblock %}

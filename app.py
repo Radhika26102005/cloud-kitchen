@@ -9,6 +9,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from flask_socketio import SocketIO, emit
 import stripe
+import razorpay
 from models import db, User, FoodItem, Order, Review, OrderItem, Notification, CartItem, PushSubscription
 from sqlalchemy import func, text
 from dotenv import load_dotenv
@@ -47,8 +48,9 @@ try:
 except Exception as e:
     print(f"Cloudinary Config Error (Skipping): {e}")
 
-# Stripe Configuration
-stripe.api_key = os.getenv('STRIPE_SECRET_KEY', 'sk_test_51P2U... (placeholder)')
+# Payment Configuration
+stripe.api_key = os.getenv('STRIPE_SECRET_KEY')
+razor_client = razorpay.Client(auth=(os.getenv("RAZORPAY_KEY_ID", ""), os.getenv("RAZORPAY_KEY_SECRET", "")))
 
 if not os.path.exists(app.config['UPLOAD_FOLDER']):
     os.makedirs(app.config['UPLOAD_FOLDER'])
@@ -721,37 +723,132 @@ def checkout():
     platform_commission = item_total * 0.20 # 20% commission on food
         
     if request.method == 'POST':
-        # Create Stripe Checkout Session
-        try:
-            flat = request.form.get('flat', '')
-            street = request.form.get('street', '')
-            landmark = request.form.get('landmark', '')
-            delivery_address = f"{flat}, {street}" + (f", near {landmark}" if landmark else "")
-            target_lat = request.form.get('target_lat')
-            target_lng = request.form.get('target_lng')
+        payment_method = request.form.get('payment_method', 'online')
+        
+        flat = request.form.get('flat', '')
+        street = request.form.get('street', '')
+        landmark = request.form.get('landmark', '')
+        delivery_address = f"{flat}, {street}" + (f", near {landmark}" if landmark else "")
+        target_lat = request.form.get('target_lat')
+        target_lng = request.form.get('target_lng')
 
-            # Create session
-            checkout_session = stripe.checkout.Session.create(
-                payment_method_types=['card'],
-                line_items=[{
-                    'price_data': {
-                        'currency': 'inr',
-                        'unit_amount': int(total * 100),
-                        'product_data': {'name': 'Cloud Kitchen Order'},
-                    },
-                    'quantity': 1,
-                }],
-                mode='payment',
-                success_url=url_for('payment_success', _external=True) + 
-                            f"?lat={target_lat}&lng={target_lng}&addr={delivery_address}",
-                cancel_url=url_for('checkout', _external=True),
+        if payment_method == 'cod':
+            # Create Order Immediately for COD
+            seller_earnings = item_total - platform_commission
+            delivery_earnings = delivery_fee
+
+            new_order = Order(
+                customer_id=current_user.id,
+                total_amount=total,
+                delivery_fee=delivery_fee,
+                service_fee=service_fee,
+                platform_commission=platform_commission,
+                seller_earnings=seller_earnings,
+                delivery_earnings=delivery_earnings,
+                status='Paid', # For COD, we treat it as 'Pending' or 'Paid' based on flow, but let's say 'Paid' for simplified dashboard logic, or add a 'COD' status.
+                delivery_address=delivery_address,
+                delivery_target_lat=float(target_lat) if target_lat else None,
+                delivery_target_lng=float(target_lng) if target_lng else None,
+                is_cod=True # I should add this column or use status
             )
-            return redirect(checkout_session.url, code=303)
-        except Exception as e:
-            flash(f"Payment Error: {str(e)}", "danger")
-            return redirect(url_for('checkout'))
+            db.session.add(new_order)
+            db.session.flush()
+
+            for c in cart_items:
+                f = FoodItem.query.get(c.food_item_id)
+                oi = OrderItem(order_id=new_order.id, food_item_id=f.id, quantity=c.quantity, price=f.price)
+                f.quantity -= c.quantity
+                db.session.add(oi)
+                db.session.delete(c)
+
+            db.session.commit()
+            
+            # Notify
+            socketio.emit('new_order_alert', {'message': f'New COD Order #{new_order.id}'}, room='sellers')
+            flash(f'Order #{new_order.id} placed successfully (Cash on Delivery)!', 'success')
+            return redirect(url_for('order_tracking', order_id=new_order.id))
+
+        else:
+            # Razorpay / Online Flow
+            try:
+                razor_order = razor_client.order.create({
+                    "amount": int(total * 100), # paise
+                    "currency": "INR",
+                    "payment_capture": 1
+                })
+                
+                # We return the order details to frontend to trigger Razorpay checkout
+                return render_template('checkout.html', 
+                                     total=total, 
+                                     item_total=item_total, 
+                                     delivery_fee=delivery_fee, 
+                                     service_fee=service_fee,
+                                     razorpay_order_id=razor_order['id'],
+                                     razorpay_key_id=os.getenv("RAZORPAY_KEY_ID"),
+                                     delivery_address=delivery_address,
+                                     lat=target_lat,
+                                     lng=target_lng)
+            except Exception as e:
+                flash(f"Payment Error: {str(e)}", "danger")
+                return redirect(url_for('checkout'))
 
     return render_template('checkout.html', total=total, item_total=item_total, delivery_fee=delivery_fee, service_fee=service_fee)
+
+@app.route('/razorpay_verify', methods=['POST'])
+@login_required
+def razorpay_verify():
+    try:
+        data = request.json
+        params_dict = {
+            'razorpay_order_id': data.get('razorpay_order_id'),
+            'razorpay_payment_id': data.get('razorpay_payment_id'),
+            'razorpay_signature': data.get('razorpay_signature')
+        }
+
+        # Verify signature
+        razor_client.utility.verify_payment_signature(params_dict)
+        
+        # If verification successful, create order (Same as payment_success logic)
+        cart_items = CartItem.query.filter_by(customer_id=current_user.id).all()
+        item_total = sum(item.quantity * FoodItem.query.get(item.food_item_id).price for item in cart_items)
+        delivery_fee = 5.0
+        service_fee = 2.0
+        total = item_total + delivery_fee + service_fee
+        platform_commission = item_total * 0.20
+        seller_earnings = item_total - platform_commission
+        delivery_earnings = delivery_fee
+
+        new_order = Order(
+            customer_id=current_user.id,
+            total_amount=total,
+            delivery_fee=delivery_fee,
+            service_fee=service_fee,
+            platform_commission=platform_commission,
+            seller_earnings=seller_earnings,
+            delivery_earnings=delivery_earnings,
+            status='Paid',
+            delivery_address=data.get('addr'),
+            delivery_target_lat=float(data.get('lat')) if data.get('lat') else None,
+            delivery_target_lng=float(data.get('lng')) if data.get('lng') else None
+        )
+        db.session.add(new_order)
+        db.session.flush()
+
+        for c in cart_items:
+            f = FoodItem.query.get(c.food_item_id)
+            oi = OrderItem(order_id=new_order.id, food_item_id=f.id, quantity=c.quantity, price=f.price)
+            f.quantity -= c.quantity
+            db.session.add(oi)
+            db.session.delete(c)
+
+        db.session.commit()
+        
+        socketio.emit('new_order_alert', {'message': f'New Order #{new_order.id}'}, room='sellers')
+        
+        return jsonify({'status': 'success', 'order_id': new_order.id})
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 400
+
 
 @app.route('/checkout/debug_bypass', methods=['POST'])
 @login_required
