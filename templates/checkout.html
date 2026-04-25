@@ -29,27 +29,44 @@
         <div style="border-top: 1px solid var(--border-color); padding-top: 1.5rem; margin-top: 1.5rem;">
             <h4>Delivery Location</h4>
             
+            <!-- Map Search Box -->
+            <div class="form-group" style="position: relative; margin-bottom: 1rem;">
+                <label>Search your area/apartment</label>
+                <div style="display: flex; gap: 0.5rem;">
+                    <input type="text" id="mapSearchInput" class="form-control" placeholder="e.g. HSR Layout, Bangalore">
+                    <button type="button" onclick="searchLocation()" class="btn btn-secondary" style="white-space: nowrap;">🔍 Find</button>
+                </div>
+            </div>
+
             <label>Pinpoint Exact Location (Required)</label>
             <div id="locPickerMap" style="height: 250px; width: 100%; border-radius: 8px; margin-bottom: 1rem; border: 1px solid var(--border-color);"></div>
             <input type="hidden" name="target_lat" id="target_lat" required value="{{ lat or '' }}">
             <input type="hidden" name="target_lng" id="target_lng" required value="{{ lng or '' }}">
             <p id="mapError" style="color: red; font-size: 0.9rem; display: none;">Please click on the map to set your delivery location.</p>
 
-            <div style="display: flex; gap: 1rem; margin-top: 1rem;">
-                <div class="form-group" style="flex: 1;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem;">
+                <div class="form-group">
                     <label>Flat/House No., Building</label>
                     <input type="text" name="flat" class="form-control" required value="{{ delivery_address.split(',')[0] if delivery_address else '' }}">
                 </div>
-                <div class="form-group" style="flex: 1;">
+                <div class="form-group">
                     <label>Street/Area</label>
                     <input type="text" name="street" class="form-control" required value="{{ delivery_address.split(',')[1] if delivery_address and ',' in delivery_address else '' }}">
                 </div>
             </div>
-            <div class="form-group">
-                <label>Landmark (Optional)</label>
-                <input type="text" name="landmark" class="form-control" placeholder="e.g. Near Apollo Hospital">
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div class="form-group">
+                    <label>Pincode</label>
+                    <input type="text" name="pincode" id="pincode" class="form-control" placeholder="6-digit PIN" required maxlength="6" pattern="\d{6}">
+                </div>
+                <div class="form-group">
+                    <label>Landmark (Optional)</label>
+                    <input type="text" name="landmark" class="form-control" placeholder="e.g. Near Apollo Hospital">
+                </div>
             </div>
         </div>
+
 
         <!-- Payment Method Selection -->
         <div style="border-top: 1px solid var(--border-color); padding-top: 1.5rem; margin-top: 1.5rem;">
@@ -93,45 +110,75 @@
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(pickerMap);
     let pickerMarker = null;
 
-    // Try to get user's current location to center map
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(pos => {
-            const lat = pos.coords.latitude;
-            const lng = pos.coords.longitude;
-            pickerMap.setView([lat, lng], 15);
-        });
+    // Search Location Function
+    window.searchLocation = function() {
+        const query = document.getElementById('mapSearchInput').value;
+        if(!query) return;
+        
+        fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`)
+            .then(res => res.json())
+            .then(data => {
+                if(data && data.length > 0) {
+                    const lat = data[0].lat;
+                    const lon = data[0].lon;
+                    updatePin(lat, lon);
+                    pickerMap.setView([lat, lon], 16);
+                } else {
+                    alert("Location not found. Please try a different search.");
+                }
+            });
     }
 
-    pickerMap.on('click', function(e) {
+    function updatePin(lat, lon) {
         if (pickerMarker) {
             pickerMap.removeLayer(pickerMarker);
         }
-        pickerMarker = L.marker(e.latlng).addTo(pickerMap);
-        document.getElementById('target_lat').value = e.latlng.lat;
-        document.getElementById('target_lng').value = e.latlng.lng;
+        pickerMarker = L.marker([lat, lon]).addTo(pickerMap);
+        document.getElementById('target_lat').value = lat;
+        document.getElementById('target_lng').value = lon;
         document.getElementById('mapError').style.display = 'none';
 
-        // Reverse Geocoding (Zomato/Swiggy style auto-fill)
-        fetch(`https://nominatim.openstreetmap.org/reverse₹format=jsonv2&lat=₹{e.latlng.lat}&lon=₹{e.latlng.lng}`)
+        // Reverse Geocoding
+        fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`)
             .then(res => res.json())
             .then(data => {
                 if(data && data.address) {
                     const house = data.address.house_number || data.address.building || '';
                     const road = data.address.road || data.address.neighbourhood || data.address.suburb || '';
                     const city = data.address.city || data.address.town || data.address.state || '';
+                    const pincode = data.address.postcode || '';
                     
                     document.querySelector('input[name="flat"]').value = house;
-                    document.querySelector('input[name="street"]').value = (road + (city ₹ ', ' + city : '')).trim().replace(/^,/, '');
+                    document.querySelector('input[name="street"]').value = (road + (city ? ', ' + city : '')).trim().replace(/^,/, '');
+                    if(pincode) document.getElementById('pincode').value = pincode;
                 }
-            }).catch(err => console.error("Geocoding failed", err));
+            });
+    }
+
+    // Try to get user's current location to center map
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(pos => {
+            const lat = pos.coords.latitude;
+            const lng = pos.coords.longitude;
+            pickerMap.setView([lat, lng], 15);
+            // Don't auto-place pin unless they click, or place it where they are?
+            // Let's auto-place it if they allow geo.
+            updatePin(lat, lng);
+        });
+    }
+
+    pickerMap.on('click', function(e) {
+        updatePin(e.latlng.lat, e.latlng.lng);
     });
 
     document.querySelector('#checkoutForm').addEventListener('submit', function(e) {
         if (!document.getElementById('target_lat').value) {
             e.preventDefault();
             document.getElementById('mapError').style.display = 'block';
+            window.scrollTo(0, document.getElementById('locPickerMap').offsetTop - 100);
         }
     });
+
 </script>
 
 {% if razorpay_order_id %}
