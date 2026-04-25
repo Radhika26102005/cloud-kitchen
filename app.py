@@ -187,52 +187,23 @@ def login():
         user.otp_code = otp
         user.otp_expiry = datetime.utcnow() + timedelta(minutes=10)
         db.session.commit()
-        # Send OTP via Fast2SMS (Best for India) or Twilio
+        # Send OTP via Email
         try:
-            fast2sms_key = os.getenv('FAST2SMS_API_KEY')
-            twilio_sid = os.getenv('TWILIO_ACCOUNT_SID')
-            
-            print(f"DEBUG: fast2sms_key found? {bool(fast2sms_key)}")
-            
-            if fast2sms_key and len(fast2sms_key.strip()) > 5:
-                # Fast2SMS implementation - Using 'q' route for trial accounts
-                import requests
-                url = "https://www.fast2sms.com/dev/bulkV2"
-                querystring = {
-                    "authorization": fast2sms_key.strip(),
-                    "message": f"Your Cloud Kitchen OTP is: {otp}. Valid for 10 mins.",
-                    "language": "english",
-                    "route": "q",
-                    "numbers": phone.replace('+91', '').strip()
-                }
-                response = requests.request("GET", url, params=querystring)
-                res_data = response.json()
-                if res_data.get('return'):
-                    flash(f'OTP sent to {phone[-4:].rjust(10, "*")}. Check your SMS!', 'info')
-                else:
-                    # Throw error to catch block to show user what went wrong
-                    raise Exception(f"Fast2SMS rejected: {res_data.get('message', 'Unknown Error')}")
-                    
-            elif twilio_sid:
-                # Twilio implementation
-                from twilio.rest import Client
-                twilio_client = Client(twilio_sid, os.getenv('TWILIO_AUTH_TOKEN'))
-                twilio_client.messages.create(
-                    body=f'Your Cloud Kitchen OTP is: {otp}. Valid for 10 minutes.',
-                    from_=os.getenv('TWILIO_PHONE_NUMBER'),
-                    to=phone
-                )
-                flash(f'OTP sent to {phone[-4:].rjust(10, "*")}. Check your SMS!', 'info')
+            if not app.config['MAIL_USERNAME'] or not app.config['MAIL_PASSWORD']:
+                flash(f'🚨 EMAIL NOT CONFIGURED: Using Dev Mode OTP: {otp}', 'warning')
             else:
-                # No SMS gateway configured
-                flash(f'🚨 KEY MISSING! Server: {os.getenv("RENDER_SERVICE_NAME", "Local")}. Checked for FAST2SMS_API_KEY. OTP is: {otp}', 'warning')
-
-
-                
+                msg = Message(
+                    subject="Your Cloud Kitchen Verification Code",
+                    recipients=[user.email],
+                    body=f"Hello {user.username},\n\nYour verification code is: {otp}\n\nValid for 10 minutes."
+                )
+                mail.send(msg)
+                flash(f'Verification code sent to your email: {user.email}', 'info')
         except Exception as e:
-            print(f'SMS Error: {e}')
-            flash(f'[SMS FAILED - DEV MODE] {str(e)[:100]} | OTP is: {otp}', 'danger')
+            flash(f'[EMAIL FAILED] {str(e)[:100]} | OTP is: {otp}', 'danger')
+        
         return redirect(url_for('verify_otp', phone=phone))
+))
     return render_template('login.html')
 
 @app.route('/verify_otp', methods=['GET', 'POST'])
@@ -267,16 +238,26 @@ def register():
     if request.method == 'POST':
         username = request.form.get('username')
         phone = request.form.get('phone', '').strip()
-        email = request.form.get('email', '').strip() or None  # Optional
+        email = request.form.get('email', '').strip()
         role = request.form.get('role')
         location = request.form.get('location')
-        # Normalize phone
-        if phone and not phone.startswith('+'):
-            phone = '+91' + phone.lstrip('0')
-        # Validate phone
-        if not phone or len(phone) < 10:
-            flash('Please enter a valid phone number.', 'danger')
+
+        # 1. Compulsory Email and Phone Check
+        if not email or not phone:
+            flash('Both Email and Contact Number are compulsory.', 'danger')
             return redirect(url_for('register'))
+
+        # 2. Phone Number Validation (India format check)
+        import re
+        # Basic check for 10-digit Indian mobile numbers
+        if not re.match(r'^[6-9]\d{9}$', phone) and not re.match(r'^\+91[6-9]\d{9}$', phone):
+            flash('Please provide a valid Indian mobile number starting with 6-9.', 'danger')
+            return redirect(url_for('register'))
+
+        # Normalize phone
+        if phone and not phone.startswith('+91'):
+            phone = '+91' + phone.lstrip('0')
+
         # Check duplicates
         if User.query.filter_by(username=username).first():
             flash('This username is already taken. Please choose another one.', 'danger')
@@ -284,10 +265,10 @@ def register():
         if User.query.filter_by(phone=phone).first():
             flash('An account with this phone number already exists.', 'danger')
             return redirect(url_for('register'))
-
-        if email and User.query.filter_by(email=email).first():
+        if User.query.filter_by(email=email).first():
             flash('An account with this email already exists.', 'danger')
             return redirect(url_for('register'))
+
         new_user = User(
             username=username,
             phone=phone,
@@ -295,13 +276,15 @@ def register():
             password=None,
             role=role,
             location=location,
-            is_verified=True
+            is_verified=False # Start unverified, will verify via Email OTP
         )
         db.session.add(new_user)
         db.session.commit()
-        flash('Account created! Please login with your phone number.', 'success')
+        
+        # Trigger OTP for new user
         return redirect(url_for('login'))
     return render_template('register.html')
+
 
 @app.route('/confirm_email/<token>')
 def confirm_email(token):
@@ -999,8 +982,9 @@ def secret_db_migrate():
             'ALTER TABLE "user" ADD COLUMN phone VARCHAR(15);',
             'ALTER TABLE "user" ADD COLUMN otp_code VARCHAR(6);',
             'ALTER TABLE "user" ADD COLUMN otp_expiry TIMESTAMP;',
-            # Make existing columns optional
-            'ALTER TABLE "user" ALTER COLUMN email DROP NOT NULL;',
+            # Make columns mandatory in DB
+            'ALTER TABLE "user" ALTER COLUMN email SET NOT NULL;',
+            'ALTER TABLE "user" ALTER COLUMN phone SET NOT NULL;',
             'ALTER TABLE "user" ALTER COLUMN password DROP NOT NULL;',
             # Order table migrations
 
