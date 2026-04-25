@@ -59,7 +59,8 @@ app.config['MAIL_PORT'] = int(os.getenv('MAIL_PORT', 587))
 app.config['MAIL_USE_TLS'] = True
 app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME')
 app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')
-app.config['MAIL_DEFAULT_SENDER'] = os.getenv('MAIL_DEFAULT_SENDER')
+app.config['MAIL_DEFAULT_SENDER'] = os.getenv('MAIL_DEFAULT_SENDER') or os.getenv('MAIL_USERNAME')
+
 
 # VAPID Keys for Web Push
 VAPID_PUBLIC_KEY = os.getenv('VAPID_PUBLIC_KEY', 'BMtQCEiMi5RXTf-67i7HyiJC1d-4eEVP_cKTr4MEKcVizTwnbkZXb5bcDJGA61RdiQILqAX9uYSi_296J_ANuqc')
@@ -195,8 +196,10 @@ def login():
                 msg = Message(
                     subject="Your Cloud Kitchen Verification Code",
                     recipients=[user.email],
-                    body=f"Hello {user.username},\n\nYour verification code is: {otp}\n\nValid for 10 minutes."
+                    body=f"Hello {user.username},\n\nYour verification code is: {otp}\n\nValid for 10 minutes.",
+                    sender=app.config['MAIL_DEFAULT_SENDER']
                 )
+
                 mail.send(msg)
                 flash(f'Verification code sent to your email: {user.email}', 'info')
         except Exception as e:
