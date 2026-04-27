@@ -23,9 +23,30 @@
         </div>
     </div>
     
-        <!-- Delivery Details -->
+        <!-- Saved Addresses Selection -->
+        {% if addresses %}
         <div style="border-top: 1px solid var(--border-color); padding-top: 1.5rem; margin-top: 1.5rem;">
-            <h4>Delivery Location</h4>
+            <h4>Select Saved Address</h4>
+            <div style="display: flex; gap: 1rem; overflow-x: auto; padding-bottom: 1rem; margin-bottom: 1.5rem;">
+                {% for addr in addresses %}
+                <div onclick="selectAddress('{{ addr.address_line }}', '{{ addr.pincode }}', '{{ addr.full_name }}', '{{ addr.phone_number }}', this)" 
+                     class="address-card" 
+                     style="min-width: 200px; padding: 1rem; border: 1px solid var(--border-color); border-radius: 12px; cursor: pointer; background: white; transition: 0.3s;">
+                    <strong style="display: block; color: var(--primary-color);">{{ addr.label }}</strong>
+                    <p style="font-size: 0.85rem; margin-top: 0.3rem;">{{ addr.full_name }}</p>
+                    <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.5rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ addr.address_line }}</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Delivery Details -->
+        <div style="border-top: 1px solid var(--border-color); padding-top: 1.5rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h4 style="margin: 0;">Delivery Location</h4>
+                <a href="{{ url_for('manage_addresses') }}" style="font-size: 0.85rem; color: var(--primary-color); text-decoration: none;">Manage Addresses ⚙️</a>
+            </div>
             
             <!-- Map Search Box -->
             <div class="form-group" style="position: relative; margin-bottom: 1rem;">
@@ -48,28 +69,50 @@
             <input type="hidden" name="target_lng" id="target_lng" required value="{{ lng or '' }}">
             <p id="mapError" style="color: red; font-size: 0.9rem; display: none;">Please click on the map to set your delivery location.</p>
 
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem;">
-                <div class="form-group">
-                    <label>Flat/House No., Building</label>
-                    <input type="text" name="flat" class="form-control" required value="{{ delivery_address.split(',')[0] if delivery_address else '' }}">
-                </div>
-                <div class="form-group">
-                    <label>Street/Area</label>
-                    <input type="text" name="street" class="form-control" required value="{{ delivery_address.split(',')[1] if delivery_address and ',' in delivery_address else '' }}">
-                </div>
+            <div class="form-group">
+                <label>Full Name (Recipient)</label>
+                <input type="text" name="full_name" id="full_name" class="form-control" required placeholder="Who is receiving?">
+            </div>
+
+            <div class="form-group">
+                <label>Phone Number</label>
+                <input type="text" name="phone_number" id="phone_number" class="form-control" required placeholder="Contact Number">
+            </div>
+
+            <div class="form-group">
+                <label>Full Address Details</label>
+                <textarea name="delivery_address_full" id="delivery_address_full" class="form-control" rows="3" required placeholder="Flat No, Building, Area, Landmark"></textarea>
             </div>
             
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                <div class="form-group">
-                    <label>Pincode</label>
-                    <input type="text" name="pincode" id="pincode" class="form-control" placeholder="6-digit PIN" required maxlength="6" pattern="\d{6}">
-                </div>
-                <div class="form-group">
-                    <label>Landmark (Optional)</label>
-                    <input type="text" name="landmark" class="form-control" placeholder="e.g. Near Apollo Hospital">
-                </div>
+            <div class="form-group">
+                <label>Pincode</label>
+                <input type="text" name="pincode" id="pincode" class="form-control" placeholder="6-digit PIN" required maxlength="6" pattern="\d{6}">
             </div>
         </div>
+
+        <script>
+            function selectAddress(addrLine, pincode, name, phone, el) {
+                // Clear existing selections
+                document.querySelectorAll('.address-card').forEach(c => {
+                    c.style.borderColor = 'var(--border-color)';
+                    c.style.background = 'white';
+                });
+                
+                // Highlight selected
+                el.style.borderColor = 'var(--primary-color)';
+                el.style.background = '#fff5f0';
+                
+                // Fill form
+                document.getElementById('delivery_address_full').value = addrLine;
+                document.getElementById('pincode').value = pincode;
+                document.getElementById('full_name').value = name;
+                document.getElementById('phone_number').value = phone;
+                
+                // Trigger map search for the address
+                document.getElementById('mapSearchInput').value = addrLine;
+                searchLocation();
+            }
+        </script>
 
 
         <!-- Payment Method Selection -->

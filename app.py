@@ -173,11 +173,11 @@ def index():
             
             if search:
                 query = query.filter(FoodItem.name.ilike(f'%{search}%'))
-            if is_veg:
+            if is_veg and is_veg != 'all':
                 query = query.filter(FoodItem.is_veg == (is_veg == 'true'))
             if max_price:
                 query = query.filter(FoodItem.price <= float(max_price))
-            if category:
+            if category and category != 'all':
                 query = query.filter(FoodItem.category.ilike(category))
             
             # Sorting logic
@@ -717,9 +717,69 @@ def view_cart():
     detailed_items = []
     for c in cart_items:
         f = FoodItem.query.get(c.food_item_id)
-        detailed_items.append({'cart_item': c, 'food': f, 'subtotal': c.quantity * f.price})
+        if f:
+            detailed_items.append({'cart_item': c, 'food': f, 'subtotal': c.quantity * f.price})
+    
+    # Recommendations in cart
+    recommendations = FoodItem.query.filter(FoodItem.quantity > 0).limit(4).all()
         
-    return render_template('cart.html', items=detailed_items, total=total)
+    return render_template('cart.html', items=detailed_items, total=total, recommendations=recommendations)
+
+@app.route('/addresses', methods=['GET', 'POST'])
+@login_required
+def manage_addresses():
+    if current_user.role != 'customer':
+        return redirect(url_for('index'))
+    
+    addresses = Address.query.filter_by(user_id=current_user.id).all()
+    
+    if request.method == 'POST':
+        if len(addresses) >= 3:
+            flash('You can only store up to 3 addresses. Please edit or delete an existing one.', 'warning')
+            return redirect(url_for('manage_addresses'))
+        
+        new_addr = Address(
+            user_id=current_user.id,
+            label=request.form.get('label', 'Home'),
+            full_name=request.form.get('full_name'),
+            phone_number=request.form.get('phone_number'),
+            address_line=request.form.get('address_line'),
+            pincode=request.form.get('pincode'),
+            is_default=(len(addresses) == 0)
+        )
+        db.session.add(new_addr)
+        db.session.commit()
+        flash('Address added successfully!', 'success')
+        return redirect(url_for('manage_addresses'))
+        
+    return render_template('addresses.html', addresses=addresses)
+
+@app.route('/address/edit/<int:addr_id>', methods=['POST'])
+@login_required
+def edit_address(addr_id):
+    addr = Address.query.get_or_404(addr_id)
+    if addr.user_id != current_user.id:
+        return redirect(url_for('manage_addresses'))
+    
+    addr.label = request.form.get('label')
+    addr.full_name = request.form.get('full_name')
+    addr.phone_number = request.form.get('phone_number')
+    addr.address_line = request.form.get('address_line')
+    addr.pincode = request.form.get('pincode')
+    
+    db.session.commit()
+    flash('Address updated!', 'success')
+    return redirect(url_for('manage_addresses'))
+
+@app.route('/address/delete/<int:addr_id>', methods=['POST'])
+@login_required
+def delete_address(addr_id):
+    addr = Address.query.get_or_404(addr_id)
+    if addr.user_id == current_user.id:
+        db.session.delete(addr)
+        db.session.commit()
+        flash('Address deleted.', 'info')
+    return redirect(url_for('manage_addresses'))
 
 @app.route('/cart/remove/<int:cart_id>', methods=['POST'])
 @login_required
@@ -767,14 +827,19 @@ def checkout():
     service_fee = 2.0
     total = item_total + delivery_fee + service_fee
     platform_commission = item_total * 0.20 # 20% commission on food
+    addresses = Address.query.filter_by(user_id=current_user.id).all()
         
     if request.method == 'POST':
         payment_method = request.form.get('payment_method', 'online')
         
-        flat = request.form.get('flat', '')
-        street = request.form.get('street', '')
-        landmark = request.form.get('landmark', '')
-        delivery_address = f"{flat}, {street}" + (f", near {landmark}" if landmark else "")
+        full_name = request.form.get('full_name', '')
+        phone_number = request.form.get('phone_number', '')
+        delivery_address = request.form.get('delivery_address_full', '')
+        pincode = request.form.get('pincode', '')
+        
+        # Combine into a final address string for the Order model
+        final_address = f"{full_name} | {phone_number} | {delivery_address} (PIN: {pincode})"
+        
         target_lat = request.form.get('target_lat')
         target_lng = request.form.get('target_lng')
 
@@ -791,11 +856,12 @@ def checkout():
                 platform_commission=platform_commission,
                 seller_earnings=seller_earnings,
                 delivery_earnings=delivery_earnings,
-                status='Paid', # For COD, we treat it as 'Pending' or 'Paid' based on flow, but let's say 'Paid' for simplified dashboard logic, or add a 'COD' status.
-                delivery_address=delivery_address,
+                status='Pending', 
+                delivery_address=final_address,
                 delivery_target_lat=float(target_lat) if target_lat else None,
                 delivery_target_lng=float(target_lng) if target_lng else None,
-                is_cod=True # I should add this column or use status
+                is_cod=True,
+                payment_method='cod'
             )
             db.session.add(new_order)
             db.session.flush()
@@ -831,14 +897,19 @@ def checkout():
                                      service_fee=service_fee,
                                      razorpay_order_id=razor_order['id'],
                                      razorpay_key_id=os.getenv("RAZORPAY_KEY_ID"),
-                                     delivery_address=delivery_address,
+                                     delivery_address=final_address,
                                      lat=target_lat,
                                      lng=target_lng)
             except Exception as e:
                 flash(f"Payment Error: {str(e)}", "danger")
                 return redirect(url_for('checkout'))
 
-    return render_template('checkout.html', total=total, item_total=item_total, delivery_fee=delivery_fee, service_fee=service_fee)
+    return render_template('checkout.html', 
+                           total=total, 
+                           item_total=item_total, 
+                           delivery_fee=delivery_fee, 
+                           service_fee=service_fee,
+                           addresses=addresses)
 
 @app.route('/razorpay_verify', methods=['POST'])
 @login_required
@@ -1227,7 +1298,9 @@ def secret_db_migrate():
             'ALTER TABLE "order" ADD COLUMN delivery_review TEXT;',
             'ALTER TABLE "order" ADD COLUMN delivery_review_image VARCHAR(250);',
             'ALTER TABLE "order" ADD COLUMN payment_method VARCHAR(50) DEFAULT \'online\';',
-            'ALTER TABLE "order" ADD COLUMN is_cod BOOLEAN DEFAULT FALSE;'
+            'ALTER TABLE "order" ADD COLUMN is_cod BOOLEAN DEFAULT FALSE;',
+            # Address Table
+            'CREATE TABLE IF NOT EXISTS address (id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES "user"(id), label VARCHAR(50), full_name VARCHAR(150), phone_number VARCHAR(15), address_line VARCHAR(250), pincode VARCHAR(10), lat FLOAT, lng FLOAT, is_default BOOLEAN);'
         ]
 
         for q in queries:

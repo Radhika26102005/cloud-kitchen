@@ -94,6 +94,18 @@ class Notification(db.Model):
     type = db.Column(db.String(50)) # info, success, warning
     is_read = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
+class Address(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    label = db.Column(db.String(50), default='Home') # Home, Work, Other
+    full_name = db.Column(db.String(150), nullable=False)
+    phone_number = db.Column(db.String(15), nullable=False)
+    address_line = db.Column(db.String(250), nullable=False)
+    pincode = db.Column(db.String(10), nullable=False)
+    lat = db.Column(db.Float)
+    lng = db.Column(db.Float)
+    is_default = db.Column(db.Boolean, default=False)
+
 class PushSubscription(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)

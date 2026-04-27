@@ -1,0 +1,92 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div style="max-width: 800px; margin: 2rem auto;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+        <h2>📍 Saved Addresses</h2>
+        <p style="color: var(--text-muted);">{{ addresses|length }}/3 saved</p>
+    </div>
+
+    {% if addresses %}
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; margin-bottom: 3rem;">
+        {% for addr in addresses %}
+        <div style="background: white; border: 1px solid var(--border-color); padding: 1.5rem; border-radius: 12px; box-shadow: var(--shadow); position: relative;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <span style="background: #fff5f0; color: var(--primary-color); padding: 0.2rem 0.8rem; border-radius: 50px; font-size: 0.8rem; font-weight: 600; text-transform: uppercase;">{{ addr.label }}</span>
+                <div style="display: flex; gap: 0.5rem;">
+                    <button onclick="toggleEdit('{{ addr.id }}')" style="background: none; border: none; cursor: pointer; color: var(--primary-color);">✏️</button>
+                    <form action="{{ url_for('delete_address', addr_id=addr.id) }}" method="POST" style="display: inline;">
+                        <button type="submit" style="background: none; border: none; cursor: pointer;" onclick="return confirm('Delete this address?')">🗑️</button>
+                    </form>
+                </div>
+            </div>
+            
+            <p><strong>{{ addr.full_name }}</strong></p>
+            <p style="font-size: 0.9rem; margin-top: 0.3rem;">📞 {{ addr.phone_number }}</p>
+            <p style="font-size: 0.9rem; color: var(--text-muted); margin-top: 0.5rem;">{{ addr.address_line }}</p>
+            <p style="font-size: 0.9rem; color: var(--text-muted);">PIN: {{ addr.pincode }}</p>
+
+            <!-- Edit Modal (Hidden by default) -->
+            <div id="edit-{{ addr.id }}" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: white; padding: 1.5rem; border-radius: 12px; z-index: 10;">
+                <form action="{{ url_for('edit_address', addr_id=addr.id) }}" method="POST">
+                    <input type="text" name="label" value="{{ addr.label }}" class="form-control" style="margin-bottom: 0.5rem;" placeholder="Label (Home/Work)">
+                    <input type="text" name="full_name" value="{{ addr.full_name }}" class="form-control" style="margin-bottom: 0.5rem;" placeholder="Name">
+                    <input type="text" name="phone_number" value="{{ addr.phone_number }}" class="form-control" style="margin-bottom: 0.5rem;" placeholder="Phone">
+                    <textarea name="address_line" class="form-control" style="margin-bottom: 0.5rem;" rows="2">{{ addr.address_line }}</textarea>
+                    <input type="text" name="pincode" value="{{ addr.pincode }}" class="form-control" style="margin-bottom: 0.5rem;" placeholder="Pincode">
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button type="submit" class="btn btn-primary" style="flex: 1;">Save</button>
+                        <button type="button" onclick="toggleEdit('{{ addr.id }}')" class="btn" style="border: 1px solid #ddd;">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div style="text-align: center; padding: 3rem; background: #f9f9f9; border-radius: 12px; margin-bottom: 3rem;">
+        <p style="color: var(--text-muted);">No addresses saved yet.</p>
+    </div>
+    {% endif %}
+
+    {% if addresses|length < 3 %}
+    <div style="background: white; border: 2px dashed var(--border-color); padding: 2rem; border-radius: 12px;">
+        <h3 style="margin-bottom: 1.5rem;">➕ Add New Address</h3>
+        <form method="POST">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                <div class="form-group">
+                    <label>Label</label>
+                    <input type="text" name="label" class="form-control" placeholder="e.g. Home, Work" required>
+                </div>
+                <div class="form-group">
+                    <label>Full Name</label>
+                    <input type="text" name="full_name" class="form-control" placeholder="Recipient's Name" required>
+                </div>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                <div class="form-group">
+                    <label>Phone Number</label>
+                    <input type="text" name="phone_number" class="form-control" placeholder="Contact for delivery" required>
+                </div>
+                <div class="form-group">
+                    <label>Pincode</label>
+                    <input type="text" name="pincode" class="form-control" placeholder="6-digit PIN" required>
+                </div>
+            </div>
+            <div class="form-group" style="margin-bottom: 1.5rem;">
+                <label>Address Details</label>
+                <textarea name="address_line" class="form-control" rows="3" placeholder="Flat No, Building, Area, Landmark" required></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary" style="width: 100%; padding: 1rem;">Save Address ✅</button>
+        </form>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+    function toggleEdit(id) {
+        const modal = document.getElementById('edit-' + id);
+        modal.style.display = modal.style.display === 'none' ? 'block' : 'none';
+    }
+</script>
+{% endblock %}
