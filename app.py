@@ -135,12 +135,43 @@ def send_notification(user_id, message, msg_type='info'):
         except Exception as e:
             print(f"Push notification error: {e}")
 
+import requests
 from threading import Thread
 
-def send_async_email(app, msg):
+def send_async_email(app, subject, recipient, body):
     with app.app_context():
         try:
-            mail.send(msg)
+            api_key = os.getenv('SENDGRID_API_KEY')
+            if not api_key:
+                print("SENDGRID_API_KEY is not set!")
+                return
+            
+            headers = {
+                'Authorization': f'Bearer {api_key}',
+                'Content-Type': 'application/json'
+            }
+            
+            data = {
+                "personalizations": [
+                    {
+                        "to": [{"email": recipient}],
+                        "subject": subject
+                    }
+                ],
+                "from": {"email": app.config['MAIL_DEFAULT_SENDER']},
+                "content": [
+                    {
+                        "type": "text/plain",
+                        "value": body
+                    }
+                ]
+            }
+            
+            response = requests.post('https://api.sendgrid.com/v3/mail/send', headers=headers, json=data)
+            if response.status_code not in [200, 201, 202]:
+                print(f"SendGrid Error: {response.status_code} {response.text}")
+            else:
+                print(f"SendGrid Success! OTP sent to {recipient}")
         except Exception as e:
             print(f"Async Mail Error: {e}")
 
@@ -254,18 +285,14 @@ def login():
             # Send OTP via Email (if email exists)
             try:
                 if user.email:
-                    if not app.config['MAIL_USERNAME'] or not app.config['MAIL_PASSWORD']:
+                    if not app.config['MAIL_DEFAULT_SENDER']:
                         flash(f'🚨 EMAIL NOT CONFIGURED: Using Dev Mode OTP: {otp}', 'warning')
                     else:
-                        msg = Message(
-                            subject="Your Cloud Kitchen Verification Code",
-                            recipients=[user.email],
-                            body=f"Hello {user.username},\n\nYour verification code is: {otp}\n\nValid for 10 minutes.",
-                            sender=app.config['MAIL_DEFAULT_SENDER']
-                        )
+                        subject = "Your Cloud Kitchen Verification Code"
+                        body = f"Hello {user.username},\n\nYour verification code is: {otp}\n\nValid for 10 minutes."
                         print(f"OTP FOR {user.email} IS: {otp}") # Print to Render Logs
-                        Thread(target=send_async_email, args=(app, msg)).start()
-                        flash(f'Verification code sent! (Render testing fallback OTP: {otp})', 'info')
+                        Thread(target=send_async_email, args=(app, subject, user.email, body)).start()
+                        flash(f'Verification code sent to your email: {user.email}', 'info')
                 else:
                     flash(f'Phone Login: Using Dev Mode OTP: {otp}', 'warning')
             except Exception as e:
