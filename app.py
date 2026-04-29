@@ -10,7 +10,7 @@ from werkzeug.utils import secure_filename
 from flask_socketio import SocketIO, emit
 import stripe
 import razorpay
-from models import db, User, FoodItem, Order, Review, OrderItem, Notification, CartItem, PushSubscription
+from models import db, User, FoodItem, Order, Review, OrderItem, Notification, CartItem, PushSubscription, Address
 from sqlalchemy import func, text
 from dotenv import load_dotenv
 from flask_mail import Mail, Message
@@ -208,22 +208,25 @@ def index():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    """Step 1: Enter email or phone to receive OTP"""
+    """Step 1: Enter email to receive OTP"""
     if request.method == 'POST':
         identifier = request.form.get('identifier', '').strip()
         
-        # NORMALIZE: If it looks like a 10-digit Indian phone, add +91
+        # If it looks like a phone number, search by phone; otherwise by email
         import re
-        if re.match(r'^\d{10}$', identifier):
-            identifier = '+91' + identifier
-        elif re.match(r'^0\d{10}$', identifier):
-            identifier = '+91' + identifier[1:]
-            
+        if re.match(r'^[\d\+\s]+$', identifier):
+            # Normalize phone
+            digits = re.sub(r'[^\d]', '', identifier)
+            if len(digits) == 10:
+                identifier = '+91' + digits
+            elif len(digits) == 11 and digits.startswith('0'):
+                identifier = '+91' + digits[1:]
+        
         # Search by email OR phone
         user = User.query.filter((User.email == identifier) | (User.phone == identifier)).first()
         
         if not user:
-            flash(f'No account found with "{identifier}". Please register first.', 'danger')
+            flash(f'No account found. Please check your email and try again.', 'danger')
             return render_template('login.html')
 
         # Generate and store OTP

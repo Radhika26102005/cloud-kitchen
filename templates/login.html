@@ -3,17 +3,17 @@
 {% block content %}
 <div class="form-container" style="max-width: 420px;">
     <div style="text-align: center; margin-bottom: 2rem;">
-        <div style="font-size: 3rem;">🔐</div>
+        <div style="font-size: 3rem;">📧</div>
         <h2 style="margin: 0.5rem 0 0.3rem;">Login</h2>
-        <p style="color: var(--text-muted); font-size: 0.95rem;">Enter your Email or Phone Number</p>
+        <p style="color: var(--text-muted); font-size: 0.95rem;">Enter your registered email address</p>
     </div>
 
     <form method="POST">
         <div class="form-group">
-            <label style="font-weight: 600;">📧 Email or 📱 Phone</label>
-            <input type="text" name="identifier" class="form-control" placeholder="Email or Phone (+91...)" required
+            <label style="font-weight: 600;">📧 Email Address</label>
+            <input type="email" name="identifier" class="form-control" placeholder="example@gmail.com" required
                    style="font-size: 1rem; padding: 0.8rem;">
-            <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.4rem;">Use the details you registered with</p>
+            <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.4rem;">Use the email you registered with</p>
         </div>
 
         <button type="submit" class="btn btn-primary" style="width: 100%; padding: 1rem; font-size: 1.1rem; border-radius: 10px; margin-top: 0.5rem;">
