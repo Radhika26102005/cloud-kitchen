@@ -1,5 +1,6 @@
 import eventlet
-eventlet.monkey_patch(all=True)
+# eventlet monkey patch removed to prevent Arbiter crash
+
 
 import os
 import sys
@@ -134,6 +135,15 @@ def send_notification(user_id, message, msg_type='info'):
         except Exception as e:
             print(f"Push notification error: {e}")
 
+from threading import Thread
+
+def send_async_email(app, msg):
+    with app.app_context():
+        try:
+            mail.send(msg)
+        except Exception as e:
+            print(f"Async Mail Error: {e}")
+
 def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -211,87 +221,96 @@ def index():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    """Step 1: Enter email to receive OTP"""
-    if request.method == 'POST':
-        identifier = request.form.get('identifier', '').strip()
-        
-        # If it looks like a phone number, search by phone; otherwise by email
-        import re
-        if re.match(r'^[\d\+\s]+$', identifier):
-            # Normalize phone
-            digits = re.sub(r'[^\d]', '', identifier)
-            if len(digits) == 10:
-                identifier = '+91' + digits
-            elif len(digits) == 11 and digits.startswith('0'):
-                identifier = '+91' + digits[1:]
-        
-        # Search by email OR phone
-        user = User.query.filter((User.email == identifier) | (User.phone == identifier)).first()
-        
-        if not user:
-            flash(f'No account found. Please check your email and try again.', 'danger')
-            return render_template('login.html')
+    try:
+        """Step 1: Enter email to receive OTP"""
+        if request.method == 'POST':
+            identifier = request.form.get('identifier', '').strip()
+            
+            # If it looks like a phone number, search by phone; otherwise by email
+            import re
+            if re.match(r'^[\d\+\s]+$', identifier):
+                # Normalize phone
+                digits = re.sub(r'[^\d]', '', identifier)
+                if len(digits) == 10:
+                    identifier = '+91' + digits
+                elif len(digits) == 11 and digits.startswith('0'):
+                    identifier = '+91' + digits[1:]
+            
+            # Search by email OR phone
+            user = User.query.filter((User.email == identifier) | (User.phone == identifier)).first()
+            
+            if not user:
+                flash(f'No account found. Please check your email and try again.', 'danger')
+                return render_template('login.html')
 
-        # Generate and store OTP
-        import random
-        from datetime import datetime, timedelta
-        otp = str(random.randint(100000, 999999))
-        user.otp_code = otp
-        user.otp_expiry = datetime.utcnow() + timedelta(minutes=10)
-        db.session.commit()
-        
-        # Send OTP via Email (if email exists)
-        try:
-            if user.email:
-                if not app.config['MAIL_USERNAME'] or not app.config['MAIL_PASSWORD']:
-                    flash(f'🚨 EMAIL NOT CONFIGURED: Using Dev Mode OTP: {otp}', 'warning')
+            # Generate and store OTP
+            import random
+            from datetime import datetime, timedelta
+            otp = str(random.randint(100000, 999999))
+            user.otp_code = otp
+            user.otp_expiry = datetime.utcnow() + timedelta(minutes=10)
+            db.session.commit()
+            
+            # Send OTP via Email (if email exists)
+            try:
+                if user.email:
+                    if not app.config['MAIL_USERNAME'] or not app.config['MAIL_PASSWORD']:
+                        flash(f'🚨 EMAIL NOT CONFIGURED: Using Dev Mode OTP: {otp}', 'warning')
+                    else:
+                        msg = Message(
+                            subject="Your Cloud Kitchen Verification Code",
+                            recipients=[user.email],
+                            body=f"Hello {user.username},\n\nYour verification code is: {otp}\n\nValid for 10 minutes.",
+                            sender=app.config['MAIL_DEFAULT_SENDER']
+                        )
+                        Thread(target=send_async_email, args=(app, msg)).start()
+                        flash(f'Verification code sent to your email: {user.email}', 'info')
                 else:
-                    msg = Message(
-                        subject="Your Cloud Kitchen Verification Code",
-                        recipients=[user.email],
-                        body=f"Hello {user.username},\n\nYour verification code is: {otp}\n\nValid for 10 minutes.",
-                        sender=app.config['MAIL_DEFAULT_SENDER']
-                    )
-                    mail.send(msg)
-                    flash(f'Verification code sent to your email: {user.email}', 'info')
-            else:
-                flash(f'Phone Login: Using Dev Mode OTP: {otp}', 'warning')
-        except Exception as e:
-            flash(f'[OTP NOT SENT] Please use this code: {otp}', 'danger')
-        
-        return redirect(url_for('verify_otp', email=user.email or user.phone))
-    return render_template('login.html')
+                    flash(f'Phone Login: Using Dev Mode OTP: {otp}', 'warning')
+            except Exception as e:
+                flash(f'[OTP NOT SENT] Please use this code: {otp}', 'danger')
+            
+            return redirect(url_for('verify_otp', email=user.email or user.phone))
+        return render_template('login.html')
+    except Exception as e:
+        import traceback
+        return f"<h1>Diagnostic Error in Login</h1><pre>{traceback.format_exc()}</pre>", 500
 
 
 
 @app.route('/verify_otp', methods=['GET', 'POST'])
 def verify_otp():
-    """Step 2: Enter OTP to complete login"""
-    from datetime import datetime
-    email = request.args.get('email') or request.form.get('email')
+    try:
+        """Step 2: Enter OTP to complete login"""
+        from datetime import datetime
+        email = request.args.get('email') or request.form.get('email')
 
-    if request.method == 'POST':
-        entered_otp = request.form.get('otp', '').strip()
-        user = User.query.filter_by(email=email).first()
+        if request.method == 'POST':
+            entered_otp = request.form.get('otp', '').strip()
+            # The 'email' variable might be a phone number if the user logged in via phone
+            user = User.query.filter((User.email == email) | (User.phone == email)).first()
 
-        if not user:
-            flash('Session expired. Please try again.', 'danger')
-            return redirect(url_for('login'))
-        if user.otp_code == entered_otp and user.otp_expiry > datetime.utcnow():
-            # Clear OTP after successful login
-            user.otp_code = None
-            user.otp_expiry = None
-            db.session.commit()
-            login_user(user, remember=True)
-            flash(f'Welcome back, {user.username}!', 'success')
-            if user.role == 'delivery':
-                return redirect(url_for('delivery_dashboard'))
-            elif user.role == 'seller':
-                return redirect(url_for('seller_dashboard'))
-            return redirect(url_for('index'))
-        else:
-            flash('Invalid or expired OTP. Please try again.', 'danger')
-    return render_template('verify_otp.html', email=email)
+            if not user:
+                flash('Session expired. Please try again.', 'danger')
+                return redirect(url_for('login'))
+            if user.otp_code == entered_otp and user.otp_expiry and user.otp_expiry > datetime.utcnow():
+                # Clear OTP after successful login
+                user.otp_code = None
+                user.otp_expiry = None
+                db.session.commit()
+                login_user(user, remember=True)
+                flash(f'Welcome back, {user.username}!', 'success')
+                if user.role == 'delivery':
+                    return redirect(url_for('delivery_dashboard'))
+                elif user.role == 'seller':
+                    return redirect(url_for('seller_dashboard'))
+                return redirect(url_for('index'))
+            else:
+                flash('Invalid or expired OTP. Please try again.', 'danger')
+        return render_template('verify_otp.html', email=email)
+    except Exception as e:
+        import traceback
+        return f"<h1>Diagnostic Error in Verify OTP</h1><pre>{traceback.format_exc()}</pre>", 500
 
 
 @app.route('/register', methods=['GET', 'POST'])
@@ -467,15 +486,18 @@ def seller_dashboard():
     
     # Analytics - Showing Net Earnings
     try:
-        total_revenue = db.session.query(func.sum(Order.seller_earnings)).\
-            join(OrderItem).join(FoodItem).filter(FoodItem.seller_id == current_user.id).scalar() or 0
+        subquery = db.session.query(OrderItem.order_id).join(FoodItem).filter(FoodItem.seller_id == current_user.id).distinct()
+        total_revenue = db.session.query(func.sum(Order.seller_earnings)).filter(
+            Order.id.in_(subquery),
+            Order.status == 'Delivered'
+        ).scalar() or 0
         
         popular_dishes = db.session.query(FoodItem.name, func.sum(OrderItem.quantity).label('total_sold')).\
-            join(OrderItem).filter(FoodItem.seller_id == current_user.id).\
+            join(OrderItem).join(Order).filter(FoodItem.seller_id == current_user.id, Order.status == 'Delivered').\
             group_by(FoodItem.id).order_by(func.sum(OrderItem.quantity).desc()).limit(5).all()
         
         order_stats = db.session.query(Order.status, func.count(Order.id)).\
-            join(OrderItem).join(FoodItem).filter(FoodItem.seller_id == current_user.id).\
+            filter(Order.id.in_(subquery)).\
             group_by(Order.status).all()
     except Exception as e:
         print(f"Analytics Error: {e}")
@@ -527,8 +549,8 @@ def admin_dashboard():
         flash('Unauthorized access', 'danger')
         return redirect(url_for('index'))
         
-    total_sales = db.session.query(func.sum(Order.total_amount)).scalar() or 0
-    total_commission = db.session.query(func.sum(Order.platform_commission + Order.service_fee)).scalar() or 0
+    total_sales = db.session.query(func.sum(Order.total_amount)).filter(Order.status == 'Delivered').scalar() or 0
+    total_commission = db.session.query(func.sum(Order.platform_commission + Order.service_fee)).filter(Order.status == 'Delivered').scalar() or 0
     sellers = User.query.filter_by(role='seller').all()
     recent_orders = Order.query.order_by(Order.id.desc()).limit(10).all()
     
@@ -930,6 +952,16 @@ def razorpay_verify():
 
         # Verify signature
         razor_client.utility.verify_payment_signature(params_dict)
+        
+        # If paying for an existing COD order
+        if data.get('order_id'):
+            order = Order.query.get(data.get('order_id'))
+            if order:
+                order.status = 'Paid'
+                order.is_cod = False
+                db.session.commit()
+                socketio.emit('status_change', {'order_id': order.id, 'status': 'Paid'})
+                return jsonify({'status': 'success', 'order_id': order.id})
         
         # If verification successful, create order (Same as payment_success logic)
         cart_items = CartItem.query.filter_by(customer_id=current_user.id).all()
