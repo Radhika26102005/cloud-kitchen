@@ -263,8 +263,9 @@ def login():
                             body=f"Hello {user.username},\n\nYour verification code is: {otp}\n\nValid for 10 minutes.",
                             sender=app.config['MAIL_DEFAULT_SENDER']
                         )
+                        print(f"OTP FOR {user.email} IS: {otp}") # Print to Render Logs
                         Thread(target=send_async_email, args=(app, msg)).start()
-                        flash(f'Verification code sent to your email: {user.email}', 'info')
+                        flash(f'Verification code sent! (Render testing fallback OTP: {otp})', 'info')
                 else:
                     flash(f'Phone Login: Using Dev Mode OTP: {otp}', 'warning')
             except Exception as e:
