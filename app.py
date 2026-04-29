@@ -147,9 +147,12 @@ def load_user(user_id):
     try:
         return User.query.get(int(user_id))
     except Exception as e:
-        # If DB schema is out of sync (e.g. missing column), log them out safely instead of crashing
         print(f"load_user DB Error: {e}")
         return None
+
+@app.route('/ping')
+def ping():
+    return 'OK', 200
 
 @app.route('/')
 def index():
