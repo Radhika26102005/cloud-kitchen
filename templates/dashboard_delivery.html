@@ -141,14 +141,42 @@
         });
 
         socket.on('new_order_alert', (data) => {
-            const toast = document.createElement('div');
-            toast.style = "position: fixed; top: 20px; right: 20px; background: #3498db; color: white; padding: 1rem 2rem; border-radius: 10px; z-index: 9999; box-shadow: 0 4px 15px rgba(0,0,0,0.2); animation: slideIn 0.5s ease-out;";
-            toast.innerHTML = `<strong>🚚 ${data.message}</strong><br>Checking for new orders...`;
-            document.body.appendChild(toast);
+            const popup = document.createElement('div');
+            popup.id = `alert-${data.order_id}`;
+            popup.style = `
+                position: fixed; top: 20px; right: 20px; 
+                background: white; color: #333; 
+                padding: 1.5rem; border-radius: 15px; 
+                z-index: 10000; box-shadow: 0 10px 30px rgba(0,0,0,0.3); 
+                border-left: 8px solid #ff5200; 
+                min-width: 300px;
+                animation: slideIn 0.5s ease-out;
+                font-family: sans-serif;
+            `;
             
-            setTimeout(() => {
-                window.location.reload();
-            }, 2000);
+            popup.innerHTML = `
+                <div style="display: flex; flex-direction: column; gap: 10px;">
+                    <h4 style="margin: 0; color: #ff5200;">🔔 New Order Available!</h4>
+                    <p style="margin: 0; font-size: 0.9rem;"><strong>Order #${data.order_id}</strong> is ${data.status}</p>
+                    <div style="display: flex; gap: 10px; margin-top: 5px;">
+                        <a href="/delivery/claim/${data.order_id}" 
+                           style="background: #ff5200; color: white; text-decoration: none; padding: 0.6rem 1rem; border-radius: 8px; font-weight: bold; flex: 1; text-align: center;">
+                           Claim Now 🛵
+                        </a>
+                        <button onclick="this.parentElement.parentElement.parentElement.remove()" 
+                                style="background: #eee; border: none; padding: 0.6rem; border-radius: 8px; cursor: pointer;">
+                                ✕
+                        </button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(popup);
+            
+            // Audio alert if possible
+            try {
+                const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3');
+                audio.play();
+            } catch(e) {}
         });
 
         // Listen for ANY status update to refresh earnings and active lists

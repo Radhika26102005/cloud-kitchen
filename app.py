@@ -1140,7 +1140,11 @@ def debug_checkout_bypass():
     
     # LIVE ALERT: Notify all sellers and delivery people of new order
     socketio.emit('new_order_alert', {'message': 'New order placed!'}, room='sellers')
-    socketio.emit('new_order_alert', {'message': 'New delivery available!'}, room='delivery')
+    socketio.emit('new_order_alert', {
+        'order_id': new_order.id,
+        'message': 'New delivery available!',
+        'status': 'Paid'
+    }, room='delivery')
     
     flash('Developer Bypass: Order created successfully!', 'info')
     return redirect(url_for('order_tracking', order_id=new_order.id))
@@ -1234,7 +1238,11 @@ def update_order_status(order_id):
 
         # ALERT delivery partners when order is Preparing or Ready
         if new_status in ['Preparing', 'Ready for Pickup']:
-            socketio.emit('new_order_alert', {'message': f'Order #{order.id} is now {new_status}!'}, room='delivery')
+            socketio.emit('new_order_alert', {
+                'order_id': order.id,
+                'message': f'New Order #{order.id} is now {new_status}!',
+                'status': new_status
+            }, room='delivery')
         
         # Save to DB Notification (Wrapped in Try to prevent blocking the status update)
         try:
