@@ -2,11 +2,22 @@
 
 {% block content %}
 <div style="max-width: 1000px; margin: 0 auto;">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1rem;">
-        <h2>Delivery Dashboard</h2>
-        <div style="background: white; padding: 0.8rem 1.5rem; border-radius: 50px; box-shadow: var(--shadow); border-left: 5px solid #2ecc71;">
-            <span style="color: var(--text-muted); font-size: 0.9rem;">Total Earnings: </span>
-            <strong style="font-size: 1.2rem; color: var(--text-main);">₹{{ "%.2f"|format(earnings) }}</strong>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1.5rem; margin: 2rem 0;">
+        <div style="background: white; padding: 1.2rem; border-radius: var(--border-radius); box-shadow: var(--shadow); border-top: 5px solid #ff5200;">
+            <p style="color: var(--text-muted); margin: 0; font-size: 0.85rem;">Available Jobs</p>
+            <h2 style="margin: 0.3rem 0 0 0; color: var(--text-main);">{{ available_orders|length }}</h2>
+        </div>
+        <div style="background: white; padding: 1.2rem; border-radius: var(--border-radius); box-shadow: var(--shadow); border-top: 5px solid #3498db;">
+            <p style="color: var(--text-muted); margin: 0; font-size: 0.85rem;">Being Prepared</p>
+            <h2 style="margin: 0.3rem 0 0 0; color: var(--text-main);">{{ preparing_count }}</h2>
+        </div>
+        <div style="background: white; padding: 1.2rem; border-radius: var(--border-radius); box-shadow: var(--shadow); border-top: 5px solid #f39c12;">
+            <p style="color: var(--text-muted); margin: 0; font-size: 0.85rem;">Out for Delivery</p>
+            <h2 style="margin: 0.3rem 0 0 0; color: var(--text-main);">{{ out_count }}</h2>
+        </div>
+        <div style="background: white; padding: 1.2rem; border-radius: var(--border-radius); box-shadow: var(--shadow); border-top: 5px solid #2ecc71;">
+            <p style="color: var(--text-muted); margin: 0; font-size: 0.85rem;">Total Earnings</p>
+            <h2 style="margin: 0.3rem 0 0 0; color: var(--text-main);">₹{{ "%.2f"|format(earnings) }}</h2>
         </div>
     </div>
 

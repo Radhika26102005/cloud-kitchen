@@ -556,8 +556,7 @@ def seller_dashboard():
         total_revenue = 0
         popular_dishes = []
         order_stats = []
-    
-    # Fetch active kitchen orders
+     # Fetch active kitchen orders
     try:
         active_orders = Order.query.join(OrderItem).join(FoodItem).\
             filter(FoodItem.seller_id == current_user.id, Order.status.in_(['Paid', 'Preparing', 'Ready for Pickup'])).all()
@@ -566,19 +565,20 @@ def seller_dashboard():
     except:
         active_orders = []
 
-    # Accurate Counts derived from the active_orders list
+    # Accurate Counts
     preparing_count = len([o for o in active_orders if o.status in ['Paid', 'Preparing']])
     ready_count = len([o for o in active_orders if o.status == 'Ready for Pickup'])
-
+    
     # Fetch handed over orders
     try:
-        handed_over = Order.query.join(OrderItem).join(FoodItem).\
+        handed_over_all = Order.query.join(OrderItem).join(FoodItem).\
             filter(FoodItem.seller_id == current_user.id, Order.status.in_(['Out for Delivery', 'Delivered'])).all()
-        handed_over = list(set(handed_over))
-        handed_over.sort(key=lambda x: x.id, reverse=True)
-        handed_over = handed_over[:10]
+        handed_over_all = list(set(handed_over_all))
+        out_for_delivery_count = len([o for o in handed_over_all if o.status == 'Out for Delivery'])
+        handed_over = sorted(handed_over_all, key=lambda x: x.id, reverse=True)[:10]
     except:
         handed_over = []
+        out_for_delivery_count = 0
 
     return render_template('dashboard_seller.html', 
                            items=items, 
@@ -588,7 +588,34 @@ def seller_dashboard():
                            orders=active_orders,
                            handed_over=handed_over,
                            preparing_count=preparing_count,
-                           ready_count=ready_count)
+                           ready_count=ready_count,
+                           out_for_delivery_count=out_for_delivery_count)
+
+@app.route('/delivery/dashboard')
+@login_required
+def delivery_dashboard():
+    if current_user.role != 'delivery':
+        return redirect(url_for('index'))
+    
+    # Calculate total earnings (only for DELIVERED orders)
+    earnings = db.session.query(func.sum(Order.delivery_earnings)).filter(
+        Order.delivery_person_id == current_user.id,
+        Order.status == 'Delivered'
+    ).scalar() or 0
+    
+    available_orders = Order.query.filter(Order.delivery_person_id == None, Order.status.in_(['Preparing', 'Ready for Pickup'])).all()
+    my_active_orders = Order.query.filter_by(delivery_person_id=current_user.id).filter(Order.status != 'Delivered').all()
+    
+    # Counts for delivery dashboard
+    my_out_count = len([o for o in my_active_orders if o.status == 'Out for Delivery'])
+    my_preparing_count = len([o for o in my_active_orders if o.status != 'Out for Delivery'])
+
+    return render_template('dashboard_delivery.html', 
+                           earnings=earnings, 
+                           available_orders=available_orders, 
+                           my_orders=my_active_orders,
+                           out_count=my_out_count,
+                           preparing_count=my_preparing_count)
 
 @app.route('/seller/toggle_status', methods=['POST'])
 @login_required
