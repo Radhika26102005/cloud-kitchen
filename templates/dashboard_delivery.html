@@ -19,7 +19,12 @@
                 {% for order in available_orders %}
                 <div style="border: 1px solid var(--border-color); padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
                     <p><strong>Order #{{ order.id }}</strong></p>
-                    <p>Delivery To: {{ order.delivery_address or 'Not specified' }}</p>
+                    <div style="background: #fdf2f2; padding: 0.5rem; border-radius: 5px; margin: 0.5rem 0; font-size: 0.85rem;">
+                        <p style="margin: 0;">👨‍🍳 <strong>Cook:</strong> {{ order.items[0].food_item.seller.username }}</p>
+                        <p style="margin: 0;">📍 <strong>Pick-up:</strong> {{ order.items[0].food_item.seller.location }}</p>
+                        <p style="margin: 0;">📞 <strong>Contact:</strong> {{ order.items[0].food_item.seller.phone }}</p>
+                    </div>
+                    <p>Deliver To: {{ order.delivery_address or 'Not specified' }}</p>
                     <a href="{{ url_for('claim_order', order_id=order.id) }}" class="btn btn-primary" style="display: block; text-align: center;">Claim Order</a>
                 </div>
                 {% endfor %}
@@ -35,6 +40,11 @@
                 {% for order in my_orders %}
                 <div style="border: 1px solid var(--border-color); padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
                     <p><strong>Order #{{ order.id }}</strong></p>
+                    <div style="background: #fdf2f2; padding: 0.5rem; border-radius: 5px; margin: 0.5rem 0; font-size: 0.85rem;">
+                        <p style="margin: 0;">👨‍🍳 <strong>Cook:</strong> {{ order.items[0].food_item.seller.username }}</p>
+                        <p style="margin: 0;">📍 <strong>Pick-up:</strong> {{ order.items[0].food_item.seller.location }}</p>
+                        <p style="margin: 0;">📞 <strong>Contact:</strong> {{ order.items[0].food_item.seller.phone }}</p>
+                    </div>
                     <p>Delivery To: {{ order.delivery_address or 'Not specified' }}</p>
                     <p>Status: <strong style="color: var(--primary-color);">{{ order.status }}</strong></p>
                     <a href="{{ url_for('order_tracking', order_id=order.id) }}" class="btn btn-secondary" style="display: block; text-align: center; margin-bottom: 0.5rem;">Update Status</a>

@@ -554,7 +554,7 @@ def seller_dashboard():
     # Fetch active kitchen orders
     try:
         active_orders = Order.query.join(OrderItem).join(FoodItem).\
-            filter(FoodItem.seller_id == current_user.id, Order.status.in_(['Paid', 'Preparing'])).all()
+            filter(FoodItem.seller_id == current_user.id, Order.status.in_(['Paid', 'Preparing', 'Ready for Pickup'])).all()
         active_orders = list(set(active_orders))
         active_orders.sort(key=lambda x: x.id, reverse=True)
     except:
@@ -1218,6 +1218,10 @@ def update_order_status(order_id):
             'status': new_status,
             'customer_id': order.customer_id
         })
+
+        # ALERT delivery partners when order is Preparing or Ready
+        if new_status in ['Preparing', 'Ready for Pickup']:
+            socketio.emit('new_order_alert', {'message': f'Order #{order.id} is now {new_status}!'}, room='delivery')
         
         # Save to DB Notification (Wrapped in Try to prevent blocking the status update)
         try:
@@ -1229,13 +1233,21 @@ def update_order_status(order_id):
         return redirect(url_for('delivery_dashboard'))
     return redirect(url_for('seller_dashboard'))
 
+@app.route('/cook/<int:seller_id>')
+def cook_profile(seller_id):
+    seller = User.query.get_or_404(seller_id)
+    if seller.role != 'seller':
+        return redirect(url_for('index'))
+    items = FoodItem.query.filter_by(seller_id=seller_id).all()
+    return render_template('cook_profile.html', seller=seller, items=items)
+
 @app.route('/delivery/dashboard')
 @login_required
 def delivery_dashboard():
     if current_user.role != 'delivery':
         return redirect(url_for('index'))
     # Orders available for delivery
-    available_orders = Order.query.filter_by(delivery_person_id=None, status='Preparing').all()
+    available_orders = Order.query.filter(Order.delivery_person_id == None, Order.status.in_(['Preparing', 'Ready for Pickup'])).all()
     
     # Active orders (claimed but not delivered)
     active_orders = Order.query.filter(Order.delivery_person_id == current_user.id, Order.status != 'Delivered').all()

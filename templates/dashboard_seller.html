@@ -8,6 +8,9 @@
         <p style="font-size: 0.8rem; color: #2ecc71; margin-top: 0.5rem;">
             <i class="fas fa-check-circle"></i> Merchant Agreement Verified (Signed: {{ current_user.terms_agreed_at.strftime('%Y-%m-%d') if current_user.terms_agreed_at else 'Active' }})
         </p>
+        <p style="font-size: 0.9rem; color: var(--text-muted); margin-top: 0.3rem;">
+            📍 <strong>Kitchen Address:</strong> {{ current_user.location or 'No address set in profile' }}
+        </p>
         {% endif %}
     </div>
     <div style="display: flex; gap: 1rem; align-items: center;">
@@ -107,9 +110,13 @@
                         </form>
                     {% elif order.status == 'Preparing' %}
                         <form method="POST" action="{{ url_for('update_order_status', order_id=order.id) }}" style="flex: 1;">
-                            <input type="hidden" name="status" value="Out for Delivery">
-                            <button type="submit" class="btn btn-primary" style="width: 100%; background: #2ecc71; border: none;">✅ Ready for Pickup</button>
+                            <input type="hidden" name="status" value="Ready for Pickup">
+                            <button type="submit" class="btn btn-primary" style="width: 100%; background: #f1c40f; color: black; border: none; font-weight: 700;">✅ Mark Ready for Pickup</button>
                         </form>
+                    {% elif order.status == 'Ready for Pickup' %}
+                        <div style="flex: 1; text-align: center; color: #3498db; font-weight: 700; padding: 0.5rem; background: #ebf5fb; border-radius: 8px;">
+                            ⏳ Waiting for Rider
+                        </div>
                     {% endif %}
                     <a href="{{ url_for('order_tracking', order_id=order.id) }}" class="btn btn-secondary" style="flex: 1; text-align: center; font-size: 0.8rem;">Track</a>
                 </div>
