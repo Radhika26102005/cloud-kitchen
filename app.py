@@ -1271,8 +1271,18 @@ def claim_order(order_id):
     order = Order.query.get_or_404(order_id)
     if order.delivery_person_id is None:
         order.delivery_person_id = current_user.id
-        order.status = 'Out for Delivery'
+        # Don't force 'Out for Delivery' yet if it's still being prepared
+        if order.status not in ['Preparing', 'Ready for Pickup']:
+            order.status = 'Out for Delivery'
+        
         db.session.commit()
+        
+        # Notify the seller that a rider has claimed it
+        socketio.emit('status_change', {
+            'order_id': order.id,
+            'message': f'Rider {current_user.username} has accepted your order!'
+        }, room='sellers')
+        
         flash('Order claimed successfully!', 'success')
     return redirect(url_for('delivery_dashboard'))
 

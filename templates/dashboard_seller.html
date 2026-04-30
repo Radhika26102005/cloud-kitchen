@@ -90,8 +90,20 @@
             <div style="background: white; padding: 1.5rem; border-radius: var(--border-radius); box-shadow: var(--shadow); border-left: 5px solid {% if order.status == 'Paid' %}#f1c40f{% elif order.status == 'Preparing' %}#3498db{% else %}#2ecc71{% endif %};">
                 <div style="display: flex; justify-content: space-between; align-items: start;">
                     <h4 style="margin: 0;">Order #{{ order.id }}</h4>
-                    <span class="badge" style="background: {% if order.status == 'Paid' %}#f1c40f{% elif order.status == 'Preparing' %}#3498db{% else %}#2ecc71{% endif %}; color: white;">{{ order.status }}</span>
+                    <span class="badge" style="background: {% if order.status == 'Paid' %}#f1c40f{% elif order.status == 'Preparing' %}#3498db{% elif order.status == 'Ready for Pickup' %}#2ecc71{% else %}#e67e22{% endif %}; color: white;">{{ order.status }}</span>
                 </div>
+                
+                {% if order.delivery_person_id %}
+                <div style="background: #e8f8f5; padding: 0.8rem; border-radius: 8px; margin-top: 1rem; border: 1px solid #a3e4d7;">
+                    <p style="margin: 0; font-size: 0.85rem; color: #16a085;"><strong>🚚 Rider Assigned:</strong></p>
+                    <p style="margin: 0.2rem 0; font-weight: 600;">{{ order.delivery_person.username }}</p>
+                    <p style="margin: 0; font-size: 0.8rem;">📞 {{ order.delivery_person.phone }}</p>
+                </div>
+                {% else %}
+                <div style="background: #fdf2f2; padding: 0.8rem; border-radius: 8px; margin-top: 1rem; border: 1px solid #fadbd8;">
+                    <p style="margin: 0; font-size: 0.85rem; color: #e74c3c;">⏳ Waiting for a rider to accept...</p>
+                </div>
+                {% endif %}
                 
                 <div style="margin: 1rem 0; font-size: 0.9rem;">
                     {% for item in order.items %}

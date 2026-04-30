@@ -61,6 +61,9 @@ class Order(db.Model):
     payment_method = db.Column(db.String(50), default='online') # online, cod
     is_cod = db.Column(db.Boolean, default=False)
     
+    customer = db.relationship('User', foreign_keys=[customer_id], backref='customer_orders')
+    delivery_person = db.relationship('User', foreign_keys=[delivery_person_id], backref='delivery_orders')
+    
     # Reviews directly tied to the Order
     seller_rating = db.Column(db.Integer, nullable=True)
     seller_review = db.Column(db.Text, nullable=True)
