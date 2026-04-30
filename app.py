@@ -570,13 +570,18 @@ def seller_dashboard():
     except:
         handed_over = []
 
+    preparing_count = len([o for o in active_orders if o.status in ['Paid', 'Preparing']])
+    ready_count = len([o for o in active_orders if o.status == 'Ready for Pickup'])
+
     return render_template('dashboard_seller.html', 
                            items=items, 
                            revenue=total_revenue, 
                            popular=popular_dishes,
                            stats=order_stats,
                            orders=active_orders,
-                           handed_over=handed_over)
+                           handed_over=handed_over,
+                           preparing_count=preparing_count,
+                           ready_count=ready_count)
 
 @app.route('/seller/toggle_status', methods=['POST'])
 @login_required
