@@ -1283,11 +1283,12 @@ def claim_order(order_id):
         
         db.session.commit()
         
-        # Notify the seller that a rider has claimed it
+        # BROADCAST to everyone (Customer, Cook, and other Riders)
         socketio.emit('status_change', {
             'order_id': order.id,
-            'message': f'Rider {current_user.username} has accepted your order!'
-        }, room='sellers')
+            'status': order.status,
+            'message': f'Rider {current_user.username} has accepted order #{order.id}!'
+        })
         
         flash('Order claimed successfully!', 'success')
     return redirect(url_for('delivery_dashboard'))

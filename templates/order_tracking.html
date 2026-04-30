@@ -74,9 +74,23 @@
                         {{ order.items[0].food_item.seller.username }}'s Kitchen
                     </a>
                 </p>
-                <p style="margin: 0.2rem 0; font-size: 0.9rem;">📍 {{ order.items[0].food_item.seller.location }}</p>
+                <p style="margin: 0.2rem 0; font-size: 0.9rem;">📍 {{ order.items[0].food_item.seller.location or 'Address Not Set' }}</p>
                 <p style="margin: 0; font-size: 0.9rem;">📞 {{ order.items[0].food_item.seller.phone }}</p>
             </div>
+
+            {% if order.delivery_person_id %}
+            <div style="background: #e8f8f5; padding: 1rem; border-radius: 12px; margin: 1.5rem 0; border-left: 5px solid #2ecc71;">
+                <p style="margin: 0; font-weight: 700; color: #16a085;">🛵 Delivery Partner:</p>
+                <p style="margin: 0.3rem 0; font-weight: 600; font-size: 1.1rem;">{{ order.delivery_person.username }}</p>
+                <p style="margin: 0.2rem 0; font-size: 0.9rem;">📞 {{ order.delivery_person.phone }}</p>
+                <p style="margin: 0; font-size: 0.8rem; color: #27ae60;">✨ Partner is assigned and ready!</p>
+            </div>
+            {% else %}
+            <div style="background: #fff9e6; padding: 1rem; border-radius: 12px; margin: 1.5rem 0; border-left: 5px solid #f1c40f;">
+                <p style="margin: 0; font-weight: 700; color: #9a7d0a;">⏳ Looking for Partner:</p>
+                <p style="margin: 0.3rem 0; font-size: 0.9rem;">We are assigning a delivery partner near the kitchen...</p>
+            </div>
+            {% endif %}
         </div>
         
         {% if order.payment_method == 'cod' and order.status != 'Paid' and order.status != 'Delivered' %}
