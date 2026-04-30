@@ -138,7 +138,7 @@ def send_notification(user_id, message, msg_type='info'):
 import requests
 from threading import Thread
 
-def send_async_email(app, subject, recipient, body):
+def send_async_email(app, subject, recipient, otp):
     with app.app_context():
         try:
             api_key = os.getenv('SENDGRID_API_KEY')
@@ -158,11 +158,26 @@ def send_async_email(app, subject, recipient, body):
                         "subject": subject
                     }
                 ],
-                "from": {"email": app.config['MAIL_DEFAULT_SENDER']},
+                "from": {
+                    "email": app.config['MAIL_DEFAULT_SENDER'],
+                    "name": "Cloud Kitchen Support"
+                },
                 "content": [
                     {
-                        "type": "text/plain",
-                        "value": body
+                        "type": "text/html",
+                        "value": f"""
+                        <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px; max-width: 500px;">
+                            <h2 style="color: #ff5200;">Verification Code</h2>
+                            <p>Hello,</p>
+                            <p>Your verification code for Cloud Kitchen is:</p>
+                            <div style="background: #f9f9f9; padding: 15px; text-align: center; font-size: 24px; font-weight: bold; letter-spacing: 5px; color: #333; border-radius: 5px; margin: 20px 0;">
+                                {otp}
+                            </div>
+                            <p style="color: #888; font-size: 12px;">This code is valid for 10 minutes. If you did not request this, please ignore this email.</p>
+                            <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
+                            <p style="font-size: 12px; color: #aaa;">© 2026 Cloud Kitchen Platform</p>
+                        </div>
+                        """
                     }
                 ]
             }
@@ -294,7 +309,7 @@ def login():
                         subject = "Your Cloud Kitchen Verification Code"
                         body = f"Hello {user.username},\n\nYour verification code is: {otp}\n\nValid for 10 minutes."
                         print(f"--- SERVER LOG OTP FOR {user.email} IS: {otp} ---") # Keep in logs for debugging
-                        Thread(target=send_async_email, args=(app, subject, user.email, body)).start()
+                        Thread(target=send_async_email, args=(app, subject, user.email, otp)).start()
                         flash(f'Verification code sent to your email: {user.email}', 'info')
                 else:
                     flash(f'No email found for this account. Using Phone Dev OTP: {otp}', 'warning')
