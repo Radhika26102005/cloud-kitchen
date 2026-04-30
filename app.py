@@ -623,6 +623,11 @@ def toggle_kitchen_status():
     if current_user.role == 'seller':
         current_user.is_open = not current_user.is_open
         db.session.commit()
+        
+        # If AJAX request
+        if request.is_json or request.headers.get('Content-Type') == 'application/json':
+            return jsonify({'success': True, 'is_open': current_user.is_open})
+            
         status = "Open" if current_user.is_open else "Closed"
         flash(f'Kitchen is now {status}!', 'info')
     return redirect(url_for('seller_dashboard'))

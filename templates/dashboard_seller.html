@@ -14,11 +14,46 @@
         {% endif %}
     </div>
     <div style="display: flex; gap: 1rem; align-items: center;">
-        <form method="POST" action="{{ url_for('toggle_kitchen_status') }}">
-            <button type="submit" class="btn {% if current_user.is_open %}btn-primary{% else %}btn-secondary{% endif %}" style="border-radius: 50px; padding: 0.5rem 1.5rem;">
-                {% if current_user.is_open %}🟢 Kitchen Open{% else %}🔴 Kitchen Closed{% endif %}
+        <div style="display: flex; gap: 1rem; align-items: center;">
+            <button id="kitchenStatusBtn" onclick="toggleKitchenStatus()" class="btn {% if current_user.is_open %}btn-primary{% else %}btn-secondary{% endif %}" style="border-radius: 50px; padding: 0.5rem 1.5rem; transition: all 0.3s ease;">
+                <span id="kitchenStatusText">{% if current_user.is_open %}🟢 Kitchen Open{% else %}🔴 Kitchen Closed{% endif %}</span>
             </button>
-        </form>
+            
+            <script>
+                function toggleKitchenStatus() {
+                    const btn = document.getElementById('kitchenStatusBtn');
+                    const text = document.getElementById('kitchenStatusText');
+                    
+                    btn.disabled = true;
+                    btn.style.opacity = '0.7';
+                    
+                    fetch("{{ url_for('toggle_kitchen_status') }}", {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' }
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        btn.disabled = false;
+                        btn.style.opacity = '1';
+                        
+                        if (data.is_open) {
+                            btn.className = 'btn btn-primary';
+                            text.innerText = '🟢 Kitchen Open';
+                        } else {
+                            btn.className = 'btn btn-secondary';
+                            text.innerText = '🔴 Kitchen Closed';
+                        }
+                        
+                        // Optional: Show a quick toast
+                        const toast = document.createElement('div');
+                        toast.style = "position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #333; color: white; padding: 10px 20px; border-radius: 50px; z-index: 10000; font-size: 0.9rem;";
+                        toast.innerText = `Kitchen is now ${data.is_open ? 'OPEN' : 'CLOSED'}`;
+                        document.body.appendChild(toast);
+                        setTimeout(() => toast.remove(), 2000);
+                    });
+                }
+            </script>
+        </div>
         <a href="{{ url_for('add_food') }}" class="btn btn-primary">+ Add New Dish</a>
     </div>
 </div>
