@@ -96,7 +96,7 @@
                 <span class="badge">{{ item.category|capitalize }}</span>
             </div>
             <div style="font-size: 0.8rem; color: var(--primary-color); margin-bottom: 0.5rem; font-weight: 600;">
-                👨‍🍳 Cooked by: {{ item.seller.username }}
+                👨‍🍳 Cooked by: {{ item.seller.username if item.seller else 'Local Kitchen' }}
             </div>
             <p class="food-desc">{{ item.description[:100] }}...</p>
             <div class="food-meta">

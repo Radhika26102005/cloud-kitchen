@@ -169,7 +169,10 @@ def send_async_email(app, subject, recipient, body):
             
             response = requests.post('https://api.sendgrid.com/v3/mail/send', headers=headers, json=data)
             if response.status_code not in [200, 201, 202]:
-                print(f"SendGrid Error: {response.status_code} {response.text}")
+                print(f"!!! SendGrid Error !!! Status: {response.status_code}")
+                print(f"Response Body: {response.text}")
+                print(f"Attempted to send from: {app.config['MAIL_DEFAULT_SENDER']}")
+                print(f"Recipient: {recipient}")
             else:
                 print(f"SendGrid Success! OTP sent to {recipient}")
         except Exception as e:
