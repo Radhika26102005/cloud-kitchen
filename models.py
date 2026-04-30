@@ -32,6 +32,8 @@ class FoodItem(db.Model):
     image_url = db.Column(db.String(250))
     avg_rating = db.Column(db.Float, default=0.0)
     total_reviews = db.Column(db.Integer, default=0)
+    
+    seller = db.relationship('User', backref='food_items', lazy=True)
 
 class CartItem(db.Model):
     id = db.Column(db.Integer, primary_key=True)
