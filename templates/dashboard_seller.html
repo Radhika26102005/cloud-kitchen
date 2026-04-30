@@ -240,6 +240,9 @@
                 }
             });
     });
+</script>
+
+<script>
     {% if current_user.is_authenticated %}
         socket.on('connect', () => {
             socket.emit('join', {room: 'sellers'});
@@ -248,7 +251,7 @@
         socket.on('new_order_alert', (data) => {
             const toast = document.createElement('div');
             toast.style = "position: fixed; top: 20px; right: 20px; background: var(--primary-color); color: white; padding: 1rem 2rem; border-radius: 10px; z-index: 9999; box-shadow: 0 4px 15px rgba(0,0,0,0.2); animation: slideIn 0.5s ease-out;";
-            toast.innerHTML = `<strong>🔔 ₹{data.message}</strong><br>Refreshing your kitchen...`;
+            toast.innerHTML = `<strong>🔔 ${data.message}</strong><br>Refreshing your kitchen...`;
             document.body.appendChild(toast);
             
             setTimeout(() => {
@@ -256,7 +259,6 @@
             }, 3000);
         });
 
-        // Listen for ANY status update to refresh the kitchen lists
         socket.on('status_change', (data) => {
             console.log("⚡ Kitchen Update: Order status changed!");
             window.location.reload();
@@ -270,5 +272,4 @@
     to { transform: translateX(0); opacity: 1; }
 }
 </style>
-{% endif %}
 {% endblock %}
