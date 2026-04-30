@@ -153,17 +153,11 @@
                     {% endfor %}
                 </div>
 
-                <div style="border-top: 1px solid var(--border-color); padding-top: 1rem; display: flex; gap: 0.5rem;">
+                <div id="actions-{{ order.id }}" style="border-top: 1px solid var(--border-color); padding-top: 1rem; display: flex; gap: 0.5rem;">
                     {% if order.status == 'Paid' %}
-                        <form method="POST" action="{{ url_for('update_order_status', order_id=order.id) }}" style="flex: 1;">
-                            <input type="hidden" name="status" value="Preparing">
-                            <button type="submit" class="btn btn-primary" style="width: 100%; background: #3498db; border: none;">👨‍🍳 Start Preparing</button>
-                        </form>
+                        <button onclick="updateOrderStatus({{ order.id }}, 'Preparing')" class="btn btn-primary" style="width: 100%; background: #3498db; border: none;">👨‍🍳 Start Preparing</button>
                     {% elif order.status == 'Preparing' %}
-                        <form method="POST" action="{{ url_for('update_order_status', order_id=order.id) }}" style="flex: 1;">
-                            <input type="hidden" name="status" value="Ready for Pickup">
-                            <button type="submit" class="btn btn-primary" style="width: 100%; background: #f1c40f; color: black; border: none; font-weight: 700;">✅ Mark Ready for Pickup</button>
-                        </form>
+                        <button onclick="updateOrderStatus({{ order.id }}, 'Ready for Pickup')" class="btn btn-primary" style="width: 100%; background: #f1c40f; color: black; border: none; font-weight: 700;">✅ Mark Ready for Pickup</button>
                     {% elif order.status == 'Ready for Pickup' %}
                         <div style="flex: 1; text-align: center; color: #3498db; font-weight: 700; padding: 0.5rem; background: #ebf5fb; border-radius: 8px;">
                             ⏳ Waiting for Rider
@@ -307,21 +301,36 @@
             socket.emit('join', {room: 'sellers'});
         });
 
-        socket.on('new_order_alert', (data) => {
+        socket.on('status_change', (data) => {
+            console.log("⚡ LIVE UPDATE: Order status changed!", data);
             const toast = document.createElement('div');
-            toast.style = "position: fixed; top: 20px; right: 20px; background: var(--primary-color); color: white; padding: 1rem 2rem; border-radius: 10px; z-index: 9999; box-shadow: 0 4px 15px rgba(0,0,0,0.2); animation: slideIn 0.5s ease-out;";
-            toast.innerHTML = `<strong>🔔 ${data.message}</strong><br>Refreshing your kitchen...`;
+            toast.style = "position: fixed; bottom: 20px; right: 20px; background: #27ae60; color: white; padding: 1rem 2rem; border-radius: 10px; z-index: 10001; box-shadow: var(--shadow);";
+            toast.innerHTML = `<strong>🔄 Order Updated</strong><br>${data.message || 'Refreshing...'}`;
             document.body.appendChild(toast);
             
             setTimeout(() => {
                 window.location.reload();
-            }, 3000);
+            }, 1000);
         });
 
-        socket.on('status_change', (data) => {
-            console.log("⚡ Kitchen Update: Order status changed!");
-            window.location.reload();
-        });
+        function updateOrderStatus(orderId, newStatus) {
+            const formData = new FormData();
+            formData.append('status', newStatus);
+            
+            // Visual feedback
+            const actionsDiv = document.getElementById(`actions-${orderId}`);
+            if (actionsDiv) actionsDiv.style.opacity = '0.5';
+
+            fetch(`/order/update_status/${orderId}`, {
+                method: 'POST',
+                body: formData
+            }).then(res => {
+                if (!res.ok) {
+                    alert("Error updating status. Please try again.");
+                    window.location.reload();
+                }
+            });
+        }
     {% endif %}
 </script>
 
