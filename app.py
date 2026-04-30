@@ -532,21 +532,27 @@ def seller_dashboard():
     
     # Analytics - Showing Net Earnings
     try:
-        subquery = db.session.query(OrderItem.order_id).join(FoodItem).filter(FoodItem.seller_id == current_user.id).distinct()
-        total_revenue = db.session.query(func.sum(Order.seller_earnings)).filter(
-            Order.id.in_(subquery),
-            Order.status == 'Delivered'
-        ).scalar() or 0
+        # Get all orders that contain this seller's items
+        seller_order_ids = [r[0] for r in db.session.query(Order.id).join(OrderItem).join(FoodItem).filter(FoodItem.seller_id == current_user.id).all()]
+        
+        # Calculate revenue: Only sum items belonging to THIS seller, minus 20% commission
+        # Revenue = Sum(quantity * price) * 0.8
+        total_revenue = db.session.query(func.sum(OrderItem.quantity * OrderItem.price)).\
+            join(FoodItem).join(Order).\
+            filter(FoodItem.seller_id == current_user.id, Order.status == 'Delivered').scalar() or 0
+        total_revenue = total_revenue * 0.8 # Apply 20% platform commission
         
         popular_dishes = db.session.query(FoodItem.name, func.sum(OrderItem.quantity).label('total_sold')).\
             join(OrderItem).join(Order).filter(FoodItem.seller_id == current_user.id, Order.status == 'Delivered').\
             group_by(FoodItem.id).order_by(func.sum(OrderItem.quantity).desc()).limit(5).all()
         
-        order_stats = db.session.query(Order.status, func.count(Order.id)).\
-            filter(Order.id.in_(subquery)).\
+        # Order Stats for charts
+        order_stats = db.session.query(Order.status, func.count(Order.id.distinct())).\
+            join(OrderItem).join(FoodItem).filter(FoodItem.seller_id == current_user.id).\
             group_by(Order.status).all()
+            
     except Exception as e:
-        print(f"Analytics Error: {e}")
+        print(f"Analytics Sync Error: {e}")
         total_revenue = 0
         popular_dishes = []
         order_stats = []
@@ -560,19 +566,19 @@ def seller_dashboard():
     except:
         active_orders = []
 
+    # Accurate Counts derived from the active_orders list
+    preparing_count = len([o for o in active_orders if o.status in ['Paid', 'Preparing']])
+    ready_count = len([o for o in active_orders if o.status == 'Ready for Pickup'])
+
     # Fetch handed over orders
     try:
         handed_over = Order.query.join(OrderItem).join(FoodItem).\
             filter(FoodItem.seller_id == current_user.id, Order.status.in_(['Out for Delivery', 'Delivered'])).all()
         handed_over = list(set(handed_over))
         handed_over.sort(key=lambda x: x.id, reverse=True)
-        # Show more handed over orders (last 10)
         handed_over = handed_over[:10]
     except:
         handed_over = []
-
-    preparing_count = len([o for o in active_orders if o.status in ['Paid', 'Preparing']])
-    ready_count = len([o for o in active_orders if o.status == 'Ready for Pickup'])
 
     return render_template('dashboard_seller.html', 
                            items=items, 
