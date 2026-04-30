@@ -1215,6 +1215,7 @@ def update_order_status(order_id):
     order = Order.query.get_or_404(order_id)
     if current_user.role in ['seller', 'delivery']:
         new_status = request.form.get('status')
+        print(f"STATUS UPDATE DEBUG: Order #{order.id} updating from {order.status} to {new_status}")
         order.status = new_status
         db.session.commit()
         
@@ -1277,13 +1278,19 @@ def claim_order(order_id):
     order = Order.query.get_or_404(order_id)
     if order.delivery_person_id is None:
         order.delivery_person_id = current_user.id
-        # Don't force 'Out for Delivery' yet if it's still being prepared
-        if order.status not in ['Preparing', 'Ready for Pickup']:
+        
+        # LOGGING for debugging
+        print(f"CLAIM DEBUG: Order #{order.id} claimed by {current_user.username}. Current Status: {order.status}")
+        
+        # Only move to 'Out for Delivery' if it was already 'Ready for Pickup'
+        # Otherwise, keep the current status (Preparing/Paid) until the cook is ready.
+        if order.status == 'Ready for Pickup':
             order.status = 'Out for Delivery'
+            print(f"CLAIM DEBUG: Order #{order.id} moved to Out for Delivery")
         
         db.session.commit()
         
-        # BROADCAST to everyone (Customer, Cook, and other Riders)
+        # BROADCAST to everyone
         socketio.emit('status_change', {
             'order_id': order.id,
             'status': order.status,
