@@ -1225,7 +1225,14 @@ def update_order_status(order_id):
     order = Order.query.get_or_404(order_id)
     if current_user.role in ['seller', 'delivery']:
         new_status = request.form.get('status')
-        print(f"STATUS UPDATE DEBUG: Order #{order.id} updating from {order.status} to {new_status}")
+        print(f"STATUS UPDATE DEBUG: Order #{order.id} update attempt from {order.status} to {new_status}")
+        
+        # SAFEGUARD: Prevent reverting from Ready/Out for Delivery back to Preparing/Paid
+        if order.status in ['Ready for Pickup', 'Out for Delivery', 'Delivered'] and new_status in ['Preparing', 'Paid', 'Pending']:
+            print(f"BLOCKED REVERSION: Order #{order.id} cannot go from {order.status} to {new_status}")
+            flash('Cannot revert order status once it is ready or dispatched.', 'warning')
+            return redirect(url_for('seller_dashboard'))
+
         order.status = new_status
         db.session.commit()
         
