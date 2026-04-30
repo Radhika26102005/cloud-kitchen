@@ -292,9 +292,9 @@ def login():
                         body = f"Hello {user.username},\n\nYour verification code is: {otp}\n\nValid for 10 minutes."
                         print(f"OTP FOR {user.email} IS: {otp}") # Print to Render Logs
                         Thread(target=send_async_email, args=(app, subject, user.email, body)).start()
-                        flash(f'Verification code sent to your email: {user.email}', 'info')
+                        flash(f'Verification code generated! If it doesn\'t arrive, use this fallback OTP: {otp}', 'success')
                 else:
-                    flash(f'Phone Login: Using Dev Mode OTP: {otp}', 'warning')
+                    flash(f'Phone Login: Using Dev Mode OTP: {otp}', 'success')
             except Exception as e:
                 flash(f'[OTP NOT SENT] Please use this code: {otp}', 'danger')
             
@@ -1037,8 +1037,12 @@ def razorpay_verify():
 def collect_cod_payment(order_id):
     """Generate a Razorpay order for a COD shipment at the door"""
     order = Order.query.get_or_404(order_id)
-    if current_user.role != 'delivery' or order.delivery_person_id != current_user.id:
-        return jsonify({'error': 'Unauthorized'}), 403
+    if current_user.role == 'delivery' and order.delivery_person_id != current_user.id:
+        return jsonify({'error': 'Unauthorized rider'}), 403
+    if current_user.role == 'customer' and order.customer_id != current_user.id:
+        return jsonify({'error': 'Unauthorized customer'}), 403
+    if current_user.role == 'seller':
+        return jsonify({'error': 'Sellers cannot pay for orders'}), 403
     
     try:
         razor_order = razor_client.order.create({
@@ -1205,7 +1209,7 @@ def update_order_status(order_id):
         
     if current_user.role == 'delivery':
         return redirect(url_for('delivery_dashboard'))
-    return redirect(url_for('orders'))
+    return redirect(url_for('seller_dashboard'))
 
 @app.route('/delivery/dashboard')
 @login_required

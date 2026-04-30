@@ -33,11 +33,10 @@
 
     <input type="text" name="search" class="form-control search-input" placeholder="Search for delicious food..." value="{{ request.args.get('search', '') }}">
     
-    <select name="is_veg" class="form-control" style="width: auto;">
-        <option value="">Dietary (All)</option>
-        <option value="true" {% if request.args.get('is_veg') == 'true' %}selected{% endif %}>Veg Only</option>
-        <option value="false" {% if request.args.get('is_veg') == 'false' %}selected{% endif %}>Non-Veg Only</option>
-    </select>
+    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; background: white; padding: 0.5rem 1rem; border-radius: 50px; border: 1px solid var(--border-color); box-shadow: var(--shadow);">
+        <input type="checkbox" name="is_veg" value="true" onchange="this.form.submit()" {% if request.args.get('is_veg') == 'true' %}checked{% endif %} style="width: 18px; height: 18px; accent-color: #27ae60;">
+        <span style="font-weight: 600; color: {% if request.args.get('is_veg') == 'true' %}#27ae60{% else %}var(--text-muted){% endif %};">🟩 Veg Mode</span>
+    </label>
 
     <input type="number" name="max_price" class="form-control" placeholder="Max Price (₹)" value="{{ request.args.get('max_price', '') }}" style="width: 130px;">
     
@@ -95,6 +94,9 @@
                     <h3 class="food-title" style="margin: 0;">{{ item.name }}</h3>
                 </div>
                 <span class="badge">{{ item.category|capitalize }}</span>
+            </div>
+            <div style="font-size: 0.8rem; color: var(--primary-color); margin-bottom: 0.5rem; font-weight: 600;">
+                👨‍🍳 Cooked by: {{ item.seller.username }}
             </div>
             <p class="food-desc">{{ item.description[:100] }}...</p>
             <div class="food-meta">
