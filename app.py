@@ -293,13 +293,13 @@ def login():
                     else:
                         subject = "Your Cloud Kitchen Verification Code"
                         body = f"Hello {user.username},\n\nYour verification code is: {otp}\n\nValid for 10 minutes."
-                        print(f"OTP FOR {user.email} IS: {otp}") # Print to Render Logs
+                        print(f"--- SERVER LOG OTP FOR {user.email} IS: {otp} ---") # Keep in logs for debugging
                         Thread(target=send_async_email, args=(app, subject, user.email, body)).start()
-                        flash(f'Verification code generated! If it doesn\'t arrive, use this fallback OTP: {otp}', 'success')
+                        flash(f'Verification code sent to your email: {user.email}', 'info')
                 else:
-                    flash(f'Phone Login: Using Dev Mode OTP: {otp}', 'success')
+                    flash(f'No email found for this account. Using Phone Dev OTP: {otp}', 'warning')
             except Exception as e:
-                flash(f'[OTP NOT SENT] Please use this code: {otp}', 'danger')
+                flash(f'Error starting email service. Use: {otp}', 'danger')
             
             return redirect(url_for('verify_otp', email=user.email or user.phone))
         return render_template('login.html')
