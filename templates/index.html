@@ -50,28 +50,7 @@
 </form>
 
 
-<!-- Recommended Section -->
-{% if recommendations %}
-<div style="margin-bottom: 4rem;">
-    <h2 style="margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem;">
-        ✨ Recommended for You
-    </h2>
-    <div style="display: flex; gap: 1.5rem; overflow-x: auto; padding-bottom: 1rem; scroll-snap-type: x mandatory;">
-        {% for item in recommendations %}
-        <div class="food-card" style="min-width: 280px; flex: 0 0 auto; scroll-snap-align: start;">
-            <img src="{{ item.image_url }}" alt="{{ item.name }}" class="food-img" style="height: 150px;">
-            <div class="food-info">
-                <h4 style="margin: 0;">{{ item.name }}</h4>
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.5rem;">
-                    <span class="food-price" style="font-size: 1.1rem;">₹{{ "%.2f"|format(item.price) }}</span>
-                    <a href="{{ url_for('food_detail', item_id=item.id) }}" class="btn btn-primary" style="padding: 0.3rem 0.8rem; font-size: 0.8rem;">View</a>
-                </div>
-            </div>
-        </div>
-        {% endfor %}
-    </div>
-</div>
-{% endif %}
+
 
 <h2 style="margin-bottom: 1.5rem;">
     {% if request.args.get('category') %}

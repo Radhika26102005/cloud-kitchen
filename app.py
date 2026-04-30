@@ -253,9 +253,9 @@ def index():
 
             all_filtered_items = query.all()
             
-            # Use top 4 for recommendations, the rest for food_items
-            recommendations = all_filtered_items[:4]
-            items = all_filtered_items[4:]
+            # Just show all items in the food_items list
+            recommendations = []
+            items = all_filtered_items
             
         except Exception as db_err:
             print(f"DB Query Error: {db_err}")
@@ -566,7 +566,8 @@ def seller_dashboard():
             filter(FoodItem.seller_id == current_user.id, Order.status.in_(['Out for Delivery', 'Delivered'])).all()
         handed_over = list(set(handed_over))
         handed_over.sort(key=lambda x: x.id, reverse=True)
-        handed_over = handed_over[:5] # Show last 5
+        # Show more handed over orders (last 10)
+        handed_over = handed_over[:10]
     except:
         handed_over = []
 
