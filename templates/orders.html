@@ -58,6 +58,20 @@
                 {% endfor %}
             </div>
 
+            {% if order.status == 'Ready for Pickup' and not order.delivery_person_id %}
+            <div style="background: #fff9e6; color: #856404; padding: 0.8rem; border-radius: 12px; font-size: 0.95rem; display: flex; align-items: center; gap: 0.8rem; margin-top: 1rem; border: 1px solid #ffeeba;">
+                <span style="display: inline-block; width: 10px; height: 10px; background: #ff5200; border-radius: 50%; animation: pulse 1.5s infinite;"></span>
+                <strong>Order is Ready! Finding a delivery partner near you...</strong>
+            </div>
+            <style>
+                @keyframes pulse {
+                    0% { transform: scale(1); opacity: 1; }
+                    50% { transform: scale(1.5); opacity: 0.5; }
+                    100% { transform: scale(1); opacity: 1; }
+                }
+            </style>
+            {% endif %}
+
             <!-- Actions -->
             <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-color); padding-top: 1.5rem;">
                 <p style="margin: 0; color: var(--text-muted); max-width: 60%;">

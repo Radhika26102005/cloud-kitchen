@@ -86,10 +86,24 @@
                 <p style="margin: 0; font-size: 0.8rem; color: #27ae60;">✨ Partner is assigned and ready!</p>
             </div>
             {% else %}
-            <div style="background: #fff9e6; padding: 1rem; border-radius: 12px; margin: 1.5rem 0; border-left: 5px solid #f1c40f;">
-                <p style="margin: 0; font-weight: 700; color: #9a7d0a;">⏳ Looking for Partner:</p>
-                <p style="margin: 0.3rem 0; font-size: 0.9rem;">We are assigning a delivery partner near the kitchen...</p>
+            <div style="background: #fff9e6; padding: 1.2rem; border-radius: 12px; margin: 1.5rem 0; border-left: 5px solid #f1c40f; border: 1px solid #ffeeba;">
+                <p style="margin: 0; font-weight: 700; color: #9a7d0a; display: flex; align-items: center; gap: 8px;">
+                    <span style="display: inline-block; width: 10px; height: 10px; background: #ff5200; border-radius: 50%; animation: pulse 1.5s infinite;"></span>
+                    ⏳ Looking for Partner:
+                </p>
+                {% if order.status == 'Ready for Pickup' %}
+                <p style="margin: 0.5rem 0 0 0; font-size: 1rem; color: #ff5200; font-weight: 700;">Order is Ready! Assigning a partner to pick it up right now...</p>
+                {% else %}
+                <p style="margin: 0.5rem 0 0 0; font-size: 0.9rem;">We are assigning a delivery partner near the kitchen...</p>
+                {% endif %}
             </div>
+            <style>
+                @keyframes pulse {
+                    0% { transform: scale(1); opacity: 1; }
+                    50% { transform: scale(1.5); opacity: 0.5; }
+                    100% { transform: scale(1); opacity: 1; }
+                }
+            </style>
             {% endif %}
         </div>
         
