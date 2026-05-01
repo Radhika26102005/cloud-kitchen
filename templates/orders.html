@@ -80,13 +80,37 @@
                 
                 <div style="display: flex; gap: 1rem;">
                     {% if current_user.role == 'seller' %}
-                        <form method="POST" action="{{ url_for('update_order_status', order_id=order.id) }}" style="margin: 0; display: flex; gap: 0.5rem;">
-                            <select name="status" class="form-control" style="padding: 0.5rem; width: auto;">
-                                <option value="Preparing" {% if order.status == 'Preparing' %}selected{% endif %}>Preparing</option>
-                                <option value="Ready for Pickup" {% if order.status == 'Ready for Pickup' %}selected{% endif %}>Ready for Pickup</option>
-                            </select>
-                            <button type="submit" class="btn btn-primary" style="padding: 0.5rem 1rem;">Update</button>
-                        </form>
+                        <div id="actions-{{ order.id }}" style="background: #f9f9f9; padding: 1rem; border-radius: 12px; border: 1px solid #eee; min-width: 250px;">
+                            <div style="display: flex; flex-direction: column; gap: 0.8rem;">
+                                <label style="display: flex; align-items: center; justify-content: space-between; cursor: pointer;">
+                                    <span style="font-weight: 600; font-size: 0.9rem;">👨‍🍳 Preparing</span>
+                                    <input type="checkbox" 
+                                           {% if order.status in ['Preparing', 'Ready for Pickup', 'Out for Delivery', 'Delivered'] %}checked disabled{% endif %} 
+                                           onchange="if(this.checked) updateOrderStatus({{ order.id }}, 'Preparing')" 
+                                           style="width: 20px; height: 20px; accent-color: #3498db;">
+                                </label>
+                                <label style="display: flex; align-items: center; justify-content: space-between; cursor: pointer;">
+                                    <span style="font-weight: 600; font-size: 0.9rem;">✅ Ready for Pickup</span>
+                                    <input type="checkbox" 
+                                           {% if order.status in ['Ready for Pickup', 'Out for Delivery', 'Delivered'] %}checked disabled{% endif %} 
+                                           {% if order.status == 'Paid' %}disabled{% endif %}
+                                           onchange="if(this.checked) updateOrderStatus({{ order.id }}, 'Ready for Pickup')" 
+                                           style="width: 20px; height: 20px; accent-color: #f1c40f;">
+                                </label>
+                            </div>
+                        </div>
+                        <script>
+                            function updateOrderStatus(orderId, newStatus) {
+                                const formData = new FormData();
+                                formData.append('status', newStatus);
+                                fetch(`/update_order_status/${orderId}`, {
+                                    method: 'POST',
+                                    body: formData
+                                }).then(res => {
+                                    if (res.ok) window.location.reload();
+                                });
+                            }
+                        </script>
                     {% endif %}
                     <a href="{{ url_for('order_tracking', order_id=order.id) }}" class="btn btn-secondary">Track Order</a>
                 </div>
