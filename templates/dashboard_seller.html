@@ -321,7 +321,7 @@
             const actionsDiv = document.getElementById(`actions-${orderId}`);
             if (actionsDiv) actionsDiv.style.opacity = '0.5';
 
-            fetch(`/order/update_status/${orderId}`, {
+            fetch(`/update_order_status/${orderId}`, {
                 method: 'POST',
                 body: formData
             }).then(res => {
