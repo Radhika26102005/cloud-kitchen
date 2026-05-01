@@ -603,7 +603,7 @@ def delivery_dashboard():
         Order.status == 'Delivered'
     ).scalar() or 0
     
-    available_orders = Order.query.filter(Order.delivery_person_id == None, Order.status.in_(['Preparing', 'Ready for Pickup'])).all()
+    available_orders = Order.query.filter(Order.delivery_person_id == None, Order.status.in_(['Paid', 'Preparing', 'Ready for Pickup'])).all()
     my_active_orders = Order.query.filter_by(delivery_person_id=current_user.id).filter(Order.status != 'Delivered').all()
     
     # Counts for delivery dashboard
