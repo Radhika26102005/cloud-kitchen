@@ -162,7 +162,7 @@
                                 👨‍🍳 1. Preparing
                             </span>
                             <input type="checkbox" 
-                                   {% if order.status in ['Preparing', 'Ready for Pickup', 'Out for Delivery'] %}checked disabled{% endif %} 
+                                   {% if order.status in ['Preparing', 'Going to Pick Up', 'Arrived at Kitchen', 'Ready for Pickup', 'Out for Delivery', 'Delivered'] %}checked disabled{% endif %} 
                                    onchange="if(this.checked) updateOrderStatus({{ order.id }}, 'Preparing')" 
                                    style="width: 22px; height: 22px; accent-color: #3498db; cursor: pointer;">
                         </label>
@@ -174,8 +174,10 @@
                                 ✅ 2. Ready for Pickup
                             </span>
                             <input type="checkbox" 
-                                   {% if order.status in ['Ready for Pickup', 'Out for Delivery'] %}checked disabled{% endif %} 
-                                   {% if order.status == 'Paid' %}disabled{% endif %}
+                                   {% if order.status in ['Ready for Pickup', 'Out for Delivery', 'Delivered'] %}checked disabled{% endif %} 
+                                   {% if order.status in ['Paid', 'Preparing', 'Going to Pick Up', 'Arrived at Kitchen'] %}
+                                       {% if order.status == 'Paid' %}disabled{% endif %}
+                                   {% endif %}
                                    onchange="if(this.checked) updateOrderStatus({{ order.id }}, 'Ready for Pickup')" 
                                    style="width: 22px; height: 22px; accent-color: #f1c40f; cursor: pointer;">
                         </label>

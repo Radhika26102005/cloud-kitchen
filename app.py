@@ -603,7 +603,7 @@ def delivery_dashboard():
         Order.status == 'Delivered'
     ).scalar() or 0
     
-    available_orders = Order.query.filter(Order.delivery_person_id == None, Order.status.in_(['Paid', 'Preparing', 'Ready for Pickup'])).all()
+    available_orders = Order.query.filter(Order.delivery_person_id == None, Order.status.in_(['Pending', 'Paid', 'Preparing', 'Ready for Pickup'])).all()
     my_active_orders = Order.query.filter_by(delivery_person_id=current_user.id).filter(Order.status != 'Delivered').all()
     
     # Counts for delivery dashboard
@@ -1259,8 +1259,8 @@ def update_order_status(order_id):
         new_status = request.form.get('status')
         print(f"STATUS UPDATE DEBUG: Order #{order.id} update attempt from {order.status} to {new_status}")
         
-        # SAFEGUARD: Prevent reverting from Ready/Out for Delivery back to Preparing/Paid
-        if order.status in ['Ready for Pickup', 'Out for Delivery', 'Delivered'] and new_status in ['Preparing', 'Paid', 'Pending']:
+        # SAFEGUARD: Prevent reverting from Going/Ready/Arrived/Out back to Preparing/Paid
+        if order.status in ['Going to Pick Up', 'Ready for Pickup', 'Arrived at Kitchen', 'Out for Delivery', 'Delivered'] and new_status in ['Preparing', 'Paid', 'Pending']:
             print(f"BLOCKED REVERSION: Order #{order.id} cannot go from {order.status} to {new_status}")
             flash('Cannot revert order status once it is ready or dispatched.', 'warning')
             return redirect(url_for('seller_dashboard'))
@@ -1315,11 +1315,13 @@ def claim_order(order_id):
         # LOGGING for debugging
         print(f"CLAIM DEBUG: Order #{order.id} claimed by {current_user.username}. Current Status: {order.status}")
         
-        # Only move to 'Out for Delivery' if it was already 'Ready for Pickup'
-        # Otherwise, keep the current status (Preparing/Paid) until the cook is ready.
+        # Set status to 'Going to Pick Up' as soon as it's claimed
         if order.status == 'Ready for Pickup':
             order.status = 'Out for Delivery'
             print(f"CLAIM DEBUG: Order #{order.id} moved to Out for Delivery")
+        else:
+            order.status = 'Going to Pick Up'
+            print(f"CLAIM DEBUG: Order #{order.id} moved to Going to Pick Up")
         
         db.session.commit()
         

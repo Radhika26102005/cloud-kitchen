@@ -116,7 +116,7 @@
     </div>
 
     <div class="status-steps">
-        {% set statuses = ['Pending', 'Preparing', 'Ready for Pickup', 'Out for Delivery', 'Delivered', 'Paid'] %}
+        {% set statuses = ['Pending', 'Paid', 'Preparing', 'Going to Pick Up', 'Arrived at Kitchen', 'Ready for Pickup', 'Out for Delivery', 'Delivered'] %}
         {% set current_index = statuses.index(order.status) if order.status in statuses else 0 %}
         
         {% for status in statuses %}
@@ -228,7 +228,9 @@
                     <option value="Pending" {% if order.status == 'Pending' %}selected{% endif %}>Pending</option>
                     <option value="Paid" {% if order.status == 'Paid' %}selected{% endif %}>Paid</option>
                     <option value="Preparing" {% if order.status == 'Preparing' %}selected{% endif %}>Preparing</option>
+                    <option value="Going to Pick Up" {% if order.status == 'Going to Pick Up' %}selected{% endif %}>Going to Pick Up</option>
                     <option value="Ready for Pickup" {% if order.status == 'Ready for Pickup' %}selected{% endif %}>Ready for Pickup</option>
+                    <option value="Arrived at Kitchen" {% if order.status == 'Arrived at Kitchen' %}selected{% endif %}>Arrived at Kitchen</option>
                     <option value="Out for Delivery" {% if order.status == 'Out for Delivery' %}selected{% endif %}>Out for Delivery</option>
                     <option value="Delivered" {% if order.status == 'Delivered' %}selected{% endif %}>Delivered</option>
                 </select>

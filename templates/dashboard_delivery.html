@@ -36,7 +36,7 @@
                         <p style="margin: 0;">📞 <strong>Contact:</strong> {{ order.items[0].food_item.seller.phone if order.items else 'N/A' }}</p>
                     </div>
                     <p>Deliver To: {{ order.delivery_address or 'Not specified' }}</p>
-                    <a href="{{ url_for('claim_order', order_id=order.id) }}" class="btn btn-primary" style="display: block; text-align: center;">Claim Order</a>
+                    <a href="{{ url_for('claim_order', order_id=order.id) }}" class="btn btn-primary" style="display: block; text-align: center; background: #2ecc71; border: none; font-weight: 700;">✅ Yes, I am Going to Pick Up</a>
                 </div>
                 {% endfor %}
             {% else %}
@@ -46,40 +46,105 @@
 
         <!-- My Active Orders -->
         <div style="background: var(--bg-color); padding: 1.5rem; border-radius: var(--border-radius);">
-            <h3>My Active Orders</h3>
+            <h3>My Active Deliveries</h3>
             {% if my_orders %}
                 {% for order in my_orders %}
-                <div style="border: 1px solid var(--border-color); padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
-                    <p><strong>Order #{{ order.id }}</strong></p>
-                    <div style="background: #fdf2f2; padding: 0.5rem; border-radius: 5px; margin: 0.5rem 0; font-size: 0.85rem;">
-                        <p style="margin: 0;">👨‍🍳 <strong>Cook:</strong> {{ order.items[0].food_item.seller.username if order.items else 'Unknown' }}</p>
-                        <p style="margin: 0;">📍 <strong>Pick-up:</strong> {{ order.items[0].food_item.seller.location if (order.items and order.items[0].food_item.seller.location) else 'Address Not Set' }}</p>
-                        <p style="margin: 0;">📞 <strong>Contact:</strong> {{ order.items[0].food_item.seller.phone if order.items else 'N/A' }}</p>
+                <div style="border: 1px solid var(--border-color); padding: 1.2rem; border-radius: 12px; margin-bottom: 1.5rem; background: white; box-shadow: var(--shadow);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <span style="font-weight: 700; font-size: 1.1rem;">Order #{{ order.id }}</span>
+                        <span style="background: #e8f8f5; color: #16a085; padding: 0.2rem 0.6rem; border-radius: 20px; font-size: 0.75rem; font-weight: 700;">{{ order.status }}</span>
                     </div>
-                    <p>Delivery To: {{ order.delivery_address or 'Not specified' }}</p>
-                    <p>Status: <strong style="color: var(--primary-color);">{{ order.status }}</strong></p>
-                    
-                    <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-top: 1rem;">
-                        {% if order.status == 'Ready for Pickup' %}
-                        <form method="POST" action="{{ url_for('update_order_status', order_id=order.id) }}">
-                            <input type="hidden" name="status" value="Out for Delivery">
-                            <button type="submit" class="btn btn-primary" style="width: 100%; background: #ff5200; border: none; font-weight: 700;">📦 Confirm Picked Up</button>
-                        </form>
-                        {% elif order.status == 'Out for Delivery' %}
-                        <form method="POST" action="{{ url_for('update_order_status', order_id=order.id) }}">
-                            <input type="hidden" name="status" value="Delivered">
-                            <button type="submit" class="btn btn-primary" style="width: 100%; background: #2ecc71; border: none; font-weight: 700;">✅ Mark as Delivered</button>
-                        </form>
-                        <button onclick="startSharingLocation({{ order.id }})" class="btn btn-secondary" style="display: block; width: 100%;" id="shareBtn-{{ order.id }}">
-                            📍 Share Live Location
-                        </button>
-                        <p id="locStatus-{{ order.id }}" style="font-size: 0.9rem; color: green; display: none; margin-top: 0.5rem;">Location sharing active...</p>
-                        {% else %}
-                        <div style="text-align: center; padding: 0.8rem; background: #eee; border-radius: 8px; font-size: 0.9rem; color: #777;">
-                            ⏳ Waiting for Cook to mark Ready
+
+                    <div style="background: #f8f9fa; padding: 0.8rem; border-radius: 8px; margin-bottom: 1rem; font-size: 0.85rem;">
+                        <p style="margin: 0;"><strong>Pick-up:</strong> {{ order.items[0].food_item.seller.location if (order.items and order.items[0].food_item.seller.location) else 'Address Not Set' }}</p>
+                        <p style="margin: 0.3rem 0 0 0;"><strong>Deliver To:</strong> {{ order.delivery_address or 'Not specified' }}</p>
+                    </div>
+
+                    <div style="background: #fff; border: 1px solid #eee; padding: 1rem; border-radius: 8px;">
+                        <p style="margin: 0 0 0.8rem 0; font-weight: 700; font-size: 0.9rem; color: var(--text-muted);">STATUS CHECKLIST</p>
+                        
+                        <div style="display: flex; flex-direction: column; gap: 0.8rem;">
+                            <!-- Accepted Step -->
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <div style="width: 20px; height: 20px; background: #2ecc71; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: white;">✓</div>
+                                <span style="font-size: 0.9rem; color: #2ecc71; font-weight: 600;">Accepted</span>
+                            </div>
+
+                            <!-- Going to Pick Up Step -->
+                            <form method="POST" action="{{ url_for('update_order_status', order_id=order.id) }}" style="margin: 0;">
+                                <input type="hidden" name="status" value="Going to Pick Up">
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    {% if order.status in ['Going to Pick Up', 'Arrived at Kitchen', 'Out for Delivery', 'Delivered'] %}
+                                        <div style="width: 20px; height: 20px; background: #2ecc71; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: white;">✓</div>
+                                        <span style="font-size: 0.9rem; color: #2ecc71; font-weight: 600;">Going to Pick Up</span>
+                                    {% else %}
+                                        <button type="submit" style="width: 20px; height: 20px; border: 2px solid #3498db; border-radius: 4px; background: none; cursor: pointer;"></button>
+                                        <span style="font-size: 0.9rem; color: #3498db; font-weight: 600;">Going to Pick Up</span>
+                                    {% endif %}
+                                </div>
+                            </form>
+
+                            <!-- Arrived at Kitchen Step -->
+                            <form method="POST" action="{{ url_for('update_order_status', order_id=order.id) }}" style="margin: 0;">
+                                <input type="hidden" name="status" value="Arrived at Kitchen">
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    {% if order.status in ['Arrived at Kitchen', 'Out for Delivery', 'Delivered'] %}
+                                        <div style="width: 20px; height: 20px; background: #2ecc71; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: white;">✓</div>
+                                        <span style="font-size: 0.9rem; color: #2ecc71; font-weight: 600;">Arrived at Kitchen</span>
+                                    {% else %}
+                                        <button type="submit" style="width: 20px; height: 20px; border: 2px solid #ddd; border-radius: 4px; background: none; cursor: pointer;"></button>
+                                        <span style="font-size: 0.9rem; color: #777;">Arrived at Kitchen</span>
+                                    {% endif %}
+                                </div>
+                            </form>
+
+                            <!-- Picked Up Step -->
+                            <form method="POST" action="{{ url_for('update_order_status', order_id=order.id) }}" style="margin: 0;">
+                                <input type="hidden" name="status" value="Out for Delivery">
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    {% if order.status in ['Out for Delivery', 'Delivered'] %}
+                                        <div style="width: 20px; height: 20px; background: #2ecc71; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: white;">✓</div>
+                                        <span style="font-size: 0.9rem; color: #2ecc71; font-weight: 600;">Picked Up & En Route</span>
+                                    {% else %}
+                                        {% if order.status == 'Ready for Pickup' or order.status == 'Arrived at Kitchen' %}
+                                            <button type="submit" style="width: 20px; height: 20px; border: 2px solid #ff5200; border-radius: 4px; background: none; cursor: pointer;"></button>
+                                            <span style="font-size: 0.9rem; color: #ff5200; font-weight: 600;">Mark as Picked Up</span>
+                                        {% else %}
+                                            <div style="width: 20px; height: 20px; border: 2px solid #eee; border-radius: 4px; background: #f9f9f9;"></div>
+                                            <span style="font-size: 0.9rem; color: #ccc;">Picked Up (Wait for Ready)</span>
+                                        {% endif %}
+                                    {% endif %}
+                                </div>
+                            </form>
+
+                            <!-- Delivered Step -->
+                            <form method="POST" action="{{ url_for('update_order_status', order_id=order.id) }}" style="margin: 0;">
+                                <input type="hidden" name="status" value="Delivered">
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    {% if order.status == 'Delivered' %}
+                                        <div style="width: 20px; height: 20px; background: #2ecc71; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: white;">✓</div>
+                                        <span style="font-size: 0.9rem; color: #2ecc71; font-weight: 600;">Delivered</span>
+                                    {% else %}
+                                        {% if order.status == 'Out for Delivery' %}
+                                            <button type="submit" style="width: 20px; height: 20px; border: 2px solid #2ecc71; border-radius: 4px; background: none; cursor: pointer;"></button>
+                                            <span style="font-size: 0.9rem; color: #2ecc71; font-weight: 600;">Mark as Delivered</span>
+                                        {% else %}
+                                            <div style="width: 20px; height: 20px; border: 2px solid #eee; border-radius: 4px; background: #f9f9f9;"></div>
+                                            <span style="font-size: 0.9rem; color: #ccc;">Delivered</span>
+                                        {% endif %}
+                                    {% endif %}
+                                </div>
+                            </form>
                         </div>
+                    </div>
+                    
+                    <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+                        {% if order.status == 'Out for Delivery' %}
+                        <button onclick="startSharingLocation({{ order.id }})" class="btn btn-secondary" style="flex: 1; font-size: 0.8rem;" id="shareBtn-{{ order.id }}">
+                            📍 Live Location
+                        </button>
                         {% endif %}
-                        <a href="{{ url_for('order_tracking', order_id=order.id) }}" class="btn btn-secondary" style="display: block; text-align: center; font-size: 0.8rem;">Track Details</a>
+                        <a href="{{ url_for('order_tracking', order_id=order.id) }}" class="btn btn-secondary" style="flex: 1; text-align: center; font-size: 0.8rem;">Full Details</a>
                     </div>
                 </div>
                 {% endfor %}
