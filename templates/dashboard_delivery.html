@@ -58,14 +58,29 @@
                     </div>
                     <p>Delivery To: {{ order.delivery_address or 'Not specified' }}</p>
                     <p>Status: <strong style="color: var(--primary-color);">{{ order.status }}</strong></p>
-                    <a href="{{ url_for('order_tracking', order_id=order.id) }}" class="btn btn-secondary" style="display: block; text-align: center; margin-bottom: 0.5rem;">Update Status</a>
                     
-                    {% if order.status == 'Out for Delivery' %}
-                    <button onclick="startSharingLocation({{ order.id }})" class="btn btn-primary" style="display: block; width: 100%;" id="shareBtn-{{ order.id }}">
-                        📍 Share Live Location
-                    </button>
-                    <p id="locStatus-{{ order.id }}" style="font-size: 0.9rem; color: green; display: none; margin-top: 0.5rem;">Location sharing active...</p>
-                    {% endif %}
+                    <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-top: 1rem;">
+                        {% if order.status == 'Ready for Pickup' %}
+                        <form method="POST" action="{{ url_for('update_order_status', order_id=order.id) }}">
+                            <input type="hidden" name="status" value="Out for Delivery">
+                            <button type="submit" class="btn btn-primary" style="width: 100%; background: #ff5200; border: none; font-weight: 700;">📦 Confirm Picked Up</button>
+                        </form>
+                        {% elif order.status == 'Out for Delivery' %}
+                        <form method="POST" action="{{ url_for('update_order_status', order_id=order.id) }}">
+                            <input type="hidden" name="status" value="Delivered">
+                            <button type="submit" class="btn btn-primary" style="width: 100%; background: #2ecc71; border: none; font-weight: 700;">✅ Mark as Delivered</button>
+                        </form>
+                        <button onclick="startSharingLocation({{ order.id }})" class="btn btn-secondary" style="display: block; width: 100%;" id="shareBtn-{{ order.id }}">
+                            📍 Share Live Location
+                        </button>
+                        <p id="locStatus-{{ order.id }}" style="font-size: 0.9rem; color: green; display: none; margin-top: 0.5rem;">Location sharing active...</p>
+                        {% else %}
+                        <div style="text-align: center; padding: 0.8rem; background: #eee; border-radius: 8px; font-size: 0.9rem; color: #777;">
+                            ⏳ Waiting for Cook to mark Ready
+                        </div>
+                        {% endif %}
+                        <a href="{{ url_for('order_tracking', order_id=order.id) }}" class="btn btn-secondary" style="display: block; text-align: center; font-size: 0.8rem;">Track Details</a>
+                    </div>
                 </div>
                 {% endfor %}
             {% else %}
