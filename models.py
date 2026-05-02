@@ -11,6 +11,8 @@ class User(UserMixin, db.Model):
     password = db.Column(db.String(150), nullable=True)  # Optional now
     role = db.Column(db.String(50), nullable=False) # customer, seller, delivery
     location = db.Column(db.String(250))
+    lat = db.Column(db.Float, nullable=True)
+    lng = db.Column(db.Float, nullable=True)
     has_agreed_to_terms = db.Column(db.Boolean, default=False)
     terms_agreed_at = db.Column(db.DateTime)
     is_open = db.Column(db.Boolean, default=True) # For Sellers

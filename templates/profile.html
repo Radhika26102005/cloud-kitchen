@@ -39,9 +39,55 @@
 
 
         <div class="form-group">
-            <label style="font-weight: 600;">📍 Location</label>
-            <input type="text" name="location" class="form-control" value="{{ current_user.location }}" required>
+            <label style="font-weight: 600;">📍 Primary Address / Kitchen Location</label>
+            <input type="text" name="location" id="locationInput" class="form-control" value="{{ current_user.location }}" required>
+            
+            <div style="margin-top: 1rem; position: relative;">
+                <div id="profileMap" style="height: 250px; border-radius: 12px; border: 1px solid var(--border-color);"></div>
+                <button type="button" onclick="useGPS()" style="position: absolute; bottom: 10px; right: 10px; z-index: 1000; background: white; border: 1px solid #ccc; padding: 0.4rem 0.8rem; border-radius: 50px; font-size: 0.8rem; cursor: pointer; font-weight: 600;">
+                    🎯 Set My Current Location
+                </button>
+            </div>
+            <input type="hidden" name="lat" id="lat" value="{{ current_user.lat or '' }}">
+            <input type="hidden" name="lng" id="lng" value="{{ current_user.lng or '' }}">
         </div>
+
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+        <script>
+            let map = L.map('profileMap').setView([{{ current_user.lat or 28.6139 }}, {{ current_user.lng or 77.2090 }}], 13);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+            let marker = {% if current_user.lat %} L.marker([{{ current_user.lat }}, {{ current_user.lng }}]).addTo(map) {% else %} null {% endif %};
+
+            map.on('click', function(e) {
+                updateLocation(e.latlng.lat, e.latlng.lng);
+            });
+
+            function updateLocation(lat, lng) {
+                if (marker) map.removeLayer(marker);
+                marker = L.marker([lat, lng]).addTo(map);
+                document.getElementById('lat').value = lat;
+                document.getElementById('lng').value = lng;
+                
+                // Optional: Reverse geocode to fill text input
+                fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`)
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.display_name) document.getElementById('locationInput').value = data.display_name;
+                    });
+            }
+
+            function useGPS() {
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(pos => {
+                        const lat = pos.coords.latitude;
+                        const lng = pos.coords.longitude;
+                        map.setView([lat, lng], 16);
+                        updateLocation(lat, lng);
+                    });
+                }
+            }
+        </script>
 
         <button type="submit" class="btn btn-primary" style="width: 100%; padding: 1rem; font-size: 1.1rem; border-radius: 10px; margin-top: 1rem;">
             💾 Save Changes

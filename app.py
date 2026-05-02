@@ -193,6 +193,27 @@ def send_async_email(app, subject, recipient, otp):
         except Exception as e:
             print(f"Async Mail Error: {e}")
 
+import math
+
+def calculate_distance(lat1, lon1, lat2, lon2):
+    """Calculate the great circle distance between two points on the earth."""
+    if None in [lat1, lon1, lat2, lon2]: return 0.0
+    R = 6371 # Radius of the earth in km
+    dLat = math.radians(lat2 - lat1)
+    dLon = math.radians(lon2 - lon1)
+    a = math.sin(dLat / 2) * math.sin(dLat / 2) + \
+        math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * \
+        math.sin(dLon / 2) * math.sin(dLon / 2)
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+    return R * c
+
+def calculate_delivery_fee(distance_km):
+    """Zomato-style delivery fee calculation."""
+    base_fee = 20.0 # For first 2km
+    if distance_km <= 2:
+        return base_fee
+    return base_fee + (distance_km - 2) * 10.0 # Extra 10rs per km
+
 def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -438,6 +459,8 @@ def profile():
         current_user.email = request.form.get('email', '').strip() or current_user.email
         current_user.phone = request.form.get('phone', current_user.phone).strip()
         current_user.location = request.form.get('location', current_user.location)
+        current_user.lat = float(request.form.get('lat')) if request.form.get('lat') else current_user.lat
+        current_user.lng = float(request.form.get('lng')) if request.form.get('lng') else current_user.lng
         
         # Normalize phone
         if current_user.phone and not current_user.phone.startswith('+91'):
@@ -943,7 +966,20 @@ def checkout():
         return redirect(url_for('index'))
         
     item_total = sum(item.quantity * FoodItem.query.get(item.food_item_id).price for item in cart_items)
-    delivery_fee = 5.0
+    
+    # Calculate Delivery Fee based on distance (from first item's seller)
+    first_item = FoodItem.query.get(cart_items[0].food_item_id)
+    seller = first_item.seller
+    
+    # Default/Min fee
+    delivery_fee = 20.0
+    target_lat = request.form.get('target_lat') or request.args.get('lat')
+    target_lng = request.form.get('target_lng') or request.args.get('lng')
+    
+    if target_lat and target_lng and seller.lat and seller.lng:
+        dist = calculate_distance(float(seller.lat), float(seller.lng), float(target_lat), float(target_lng))
+        delivery_fee = calculate_delivery_fee(dist)
+        
     service_fee = 2.0
     total = item_total + delivery_fee + service_fee
     platform_commission = item_total * 0.20 # 20% commission on food
@@ -1060,10 +1096,23 @@ def razorpay_verify():
                 socketio.emit('status_change', {'order_id': order.id, 'status': 'Paid'})
                 return jsonify({'status': 'success', 'order_id': order.id})
         
-        # If verification successful, create order (Same as payment_success logic)
         cart_items = CartItem.query.filter_by(customer_id=current_user.id).all()
+        if not cart_items: return jsonify({'status': 'error', 'message': 'Cart empty'})
+        
         item_total = sum(item.quantity * FoodItem.query.get(item.food_item_id).price for item in cart_items)
-        delivery_fee = 5.0
+        
+        # Calculate Delivery Fee based on distance (from first item's seller)
+        first_item = FoodItem.query.get(cart_items[0].food_item_id)
+        seller = first_item.seller
+        delivery_fee = 20.0
+        
+        t_lat = data.get('lat')
+        t_lng = data.get('lng')
+        
+        if t_lat and t_lng and seller.lat and seller.lng:
+            dist = calculate_distance(float(seller.lat), float(seller.lng), float(t_lat), float(t_lng))
+            delivery_fee = calculate_delivery_fee(dist)
+
         service_fee = 2.0
         total = item_total + delivery_fee + service_fee
         platform_commission = item_total * 0.20
