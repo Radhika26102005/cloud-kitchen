@@ -230,6 +230,36 @@ def load_user(user_id):
         print(f"load_user DB Error: {e}")
         return None
 
+from sqlalchemy import text
+
+def run_migrations():
+    """Universal migration helper for SQLite and PostgreSQL"""
+    with app.app_context():
+        # List of columns to add
+        # Format: (table_name, column_name, type_definition)
+        migrations = [
+            ('user', 'lat', 'DOUBLE PRECISION'), # FLOAT in Postgres
+            ('user', 'lng', 'DOUBLE PRECISION'),
+            ('food_item', 'is_veg', 'BOOLEAN DEFAULT TRUE')
+        ]
+        
+        for table, col, col_type in migrations:
+            try:
+                # Use double quotes for table names to handle reserved words like "user" in Postgres
+                db.session.execute(text(f"ALTER TABLE \"{table}\" ADD COLUMN {col} {col_type}"))
+                db.session.commit()
+                print(f"✅ Migration: Added {col} to {table}")
+            except Exception as e:
+                db.session.rollback()
+                # If it already exists, just ignore
+                if 'already exists' in str(e).lower() or 'duplicate' in str(e).lower():
+                    pass
+                else:
+                    print(f"❌ Migration Error on {table}.{col}: {e}")
+
+# Run migrations on startup
+run_migrations()
+
 @app.route('/ping')
 def ping():
     return 'OK', 200
