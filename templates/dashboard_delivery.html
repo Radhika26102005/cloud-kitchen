@@ -30,12 +30,16 @@
                 {% for order in available_orders %}
                 <div id="available-order-{{ order.id }}" style="border: 1px solid var(--border-color); padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
                     <p><strong>Order #{{ order.id }}</strong></p>
-                    <div style="background: #fdf2f2; padding: 0.5rem; border-radius: 5px; margin: 0.5rem 0; font-size: 0.85rem;">
+                    <div style="background: #fdf2f2; padding: 0.8rem; border-radius: 8px; margin: 0.8rem 0; font-size: 0.85rem;">
                         <p style="margin: 0;">👨‍🍳 <strong>Cook:</strong> {{ order.items[0].food_item.seller.username if order.items else 'Unknown' }}</p>
-                        <p style="margin: 0;">📍 <strong>Pick-up:</strong> {{ order.items[0].food_item.seller.location if (order.items and order.items[0].food_item.seller.location) else 'Address Not Set' }}</p>
-                        <p style="margin: 0;">📞 <strong>Contact:</strong> {{ order.items[0].food_item.seller.phone if order.items else 'N/A' }}</p>
+                        <p style="margin: 0.3rem 0;">📍 <strong>Pick-up:</strong> {{ order.items[0].food_item.seller.location if (order.items and order.items[0].food_item.seller.location) else 'Address Not Set' }}</p>
+                        <p style="margin: 0.3rem 0;">📞 <strong>Contact:</strong> {{ order.items[0].food_item.seller.phone if order.items else 'N/A' }}</p>
+                        <div style="margin-top: 0.5rem; display: flex; gap: 5px;">
+                            <a href="https://www.google.com/maps/search/?api=1&query={{ (order.items[0].food_item.seller.location or '')|urlencode }}" target="_blank" style="background: #4285F4; color: white; padding: 0.3rem 0.6rem; border-radius: 4px; text-decoration: none; font-size: 0.75rem; font-weight: 700;">📍 Pickup Loc</a>
+                            <a href="https://www.google.com/maps/search/?api=1&query={{ (order.delivery_address or '')|urlencode }}" target="_blank" style="background: #ea4335; color: white; padding: 0.3rem 0.6rem; border-radius: 4px; text-decoration: none; font-size: 0.75rem; font-weight: 700;">📍 Drop Loc</a>
+                        </div>
                     </div>
-                    <p>Deliver To: {{ order.delivery_address or 'Not specified' }}</p>
+                    <p style="font-size: 0.85rem; margin-bottom: 0.5rem;"><strong>Drop To:</strong> {{ order.delivery_address or 'Not specified' }}</p>
                     <a href="{{ url_for('claim_order', order_id=order.id) }}" class="btn btn-primary" style="display: block; text-align: center; background: #2ecc71; border: none; font-weight: 700;">✅ Yes, I am Going to Pick Up</a>
                 </div>
                 {% endfor %}
@@ -55,19 +59,26 @@
                         <span style="background: #e8f8f5; color: #16a085; padding: 0.2rem 0.6rem; border-radius: 20px; font-size: 0.75rem; font-weight: 700;">{{ order.status }}</span>
                     </div>
 
-                    <div style="background: #f8f9fa; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; font-size: 0.85rem;">
-                        <p style="margin: 0;">
-                            <strong>Pick-up:</strong> {{ order.items[0].food_item.seller.location if (order.items and order.items[0].food_item.seller.location) else 'Address Not Set' }}
-                            <a href="https://www.google.com/maps/search/?api=1&query={{ (order.items[0].food_item.seller.location or '')|urlencode }}" target="_blank" style="color: #4285F4; margin-left: 5px; text-decoration: none; font-weight: 700;">📍 Open in Maps</a>
-                        </p>
-                        <p style="margin: 0.5rem 0 0 0;">
-                            <strong>Deliver To:</strong> {{ order.delivery_address or 'Not specified' }}
-                            {% if order.delivery_target_lat and order.delivery_target_lng %}
-                            <a href="https://www.google.com/maps/dir/?api=1&destination={{ order.delivery_target_lat }},{{ order.delivery_target_lng }}" target="_blank" style="color: #ea4335; margin-left: 5px; text-decoration: none; font-weight: 700;">📍 Open in Maps</a>
-                            {% else %}
-                            <a href="https://www.google.com/maps/search/?api=1&query={{ (order.delivery_address or '')|urlencode }}" target="_blank" style="color: #ea4335; margin-left: 5px; text-decoration: none; font-weight: 700;">📍 Open in Maps</a>
-                            {% endif %}
-                        </p>
+                    <div style="background: #f8f9fa; padding: 1rem; border-radius: 12px; margin-bottom: 1rem; border: 1px solid #eee;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                            <span style="font-weight: 700; color: #555;">📍 Navigation</span>
+                            <span style="font-size: 0.75rem; color: var(--text-muted);">Open in Google Maps</span>
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 0.8rem;">
+                            <a href="https://www.google.com/maps/search/?api=1&query={{ (order.items[0].food_item.seller.location or '')|urlencode }}" target="_blank" 
+                               style="display: flex; align-items: center; justify-content: center; gap: 8px; background: #fff; color: #4285F4; border: 2px solid #4285F4; padding: 0.8rem; border-radius: 8px; text-decoration: none; font-weight: 700; transition: 0.3s;">
+                                <span>🏪 Go to Kitchen (Pickup)</span>
+                            </a>
+                            
+                            {% set dest = order.delivery_target_lat ~ ',' ~ order.delivery_target_lng if (order.delivery_target_lat and order.delivery_target_lng) else (order.delivery_address or '') %}
+                            <a href="https://www.google.com/maps/dir/?api=1&destination={{ dest|urlencode }}" target="_blank" 
+                               style="display: flex; align-items: center; justify-content: center; gap: 8px; background: #ea4335; color: white; padding: 0.8rem; border-radius: 8px; text-decoration: none; font-weight: 700; transition: 0.3s; box-shadow: 0 4px 10px rgba(234, 67, 53, 0.3);">
+                                <span>🏠 Go to Customer (Drop)</span>
+                            </a>
+                        </div>
+                        <div style="margin-top: 0.8rem; font-size: 0.8rem; color: #666;">
+                            <p style="margin: 0;"><strong>Drop Address:</strong> {{ order.delivery_address }}</p>
+                        </div>
                     </div>
 
                     <div style="background: #fff; border: 1px solid #eee; padding: 1rem; border-radius: 8px;">
