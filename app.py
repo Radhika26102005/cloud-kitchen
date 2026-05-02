@@ -448,8 +448,8 @@ def profile():
         new_url = request.form.get('profile_image_url', '').strip()
         if file and file.filename != '' and allowed_file(file.filename):
             try:
-                # FIXED: Pass the file object directly, not file.read()
-                upload_result = cloudinary.uploader.upload(file)
+                file_bytes = file.read()
+                upload_result = cloudinary.uploader.upload(file_bytes)
                 current_user.profile_image = upload_result['secure_url']
             except Exception as e:
                 flash(f'Cloudinary Error: {e}', 'danger')
@@ -678,7 +678,8 @@ def add_food():
                     if not cloudinary.config().api_key:
                         raise Exception("Cloudinary API Key is missing in this worker context.")
                         
-                    upload_result = cloudinary.uploader.upload(file)
+                    file_bytes = file.read()
+                    upload_result = cloudinary.uploader.upload(file_bytes)
                     image_url = upload_result['secure_url']
                 except Exception as e:
                     print(f"Cloudinary Upload Error: {e}")
@@ -786,7 +787,8 @@ def food_detail(item_id):
                 file = request.files['review_image']
                 if file and allowed_file(file.filename):
                     try:
-                        upload_result = cloudinary.uploader.upload(file)
+                        file_bytes = file.read()
+                        upload_result = cloudinary.uploader.upload(file_bytes)
                         image_url = upload_result['secure_url']
                     except Exception as e:
                         print(f"Cloudinary Review Upload Error: {e}")
