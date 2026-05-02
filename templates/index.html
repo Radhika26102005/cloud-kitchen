@@ -24,19 +24,19 @@
 <!-- Category Pills (Zomato Style) -->
 <div style="display: flex; gap: 2rem; overflow-x: auto; padding: 1.5rem 0.5rem; margin-bottom: 2rem; scrollbar-width: none; -ms-overflow-style: none;">
     {% set cats = [
-        ('all', 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=200&h=200&fit=crop', 'All'),
-        ('tiffin', 'https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=200&h=200&fit=crop', 'Tiffin'),
-        ('breakfast', 'https://images.unsplash.com/photo-150475466808f-7f67b85ef38e?w=200&h=200&fit=crop', 'Breakfast'),
-        ('lunch', 'https://images.unsplash.com/photo-1589302168068-964664d93dc0?w=200&h=200&fit=crop', 'Lunch'),
-        ('dinner', 'https://images.unsplash.com/photo-1585937421612-70a008356fbe?w=200&h=200&fit=crop', 'Dinner'),
-        ('sweets', 'https://images.unsplash.com/photo-1589119908995-c6837fa14848?w=200&h=200&fit=crop', 'Sweets'),
+        ('all', 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=200&h=200&fit=crop', 'All'),
+        ('tiffin', 'https://images.unsplash.com/photo-1547050262-ce98ce6d859b?w=200&h=200&fit=crop', 'Tiffin'),
+        ('breakfast', 'https://images.unsplash.com/photo-1533089860892-a7c6f0a88666?w=200&h=200&fit=crop', 'Breakfast'),
+        ('lunch', 'https://images.unsplash.com/photo-1546548970-71785318a17b?w=200&h=200&fit=crop', 'Lunch'),
+        ('dinner', 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=200&h=200&fit=crop', 'Dinner'),
+        ('sweets', 'https://images.unsplash.com/photo-1563729784474-d77dbb933a9e?w=200&h=200&fit=crop', 'Sweets'),
         ('beverages', 'https://images.unsplash.com/photo-1544145945-f904253d0c71?w=200&h=200&fit=crop', 'Drinks')
     ] %}
     {% for slug, img, name in cats %}
     <a href="{{ url_for('index', category=slug if slug != 'all' else '') }}" 
        style="text-decoration: none; color: var(--text-main); text-align: center; flex-shrink: 0; transition: transform 0.3s ease;">
         <div style="width: 80px; height: 80px; border-radius: 50%; overflow: hidden; margin-bottom: 0.5rem; border: 2px solid {% if request.args.get('category') == slug or (slug == 'all' and not request.args.get('category')) %}var(--primary-color){% else %}transparent{% endif %}; box-shadow: var(--shadow);">
-            <img src="{{ img }}" alt="{{ name }}" style="width: 100%; height: 100%; object-fit: crop;">
+            <img src="{{ img }}" alt="{{ name }}" style="width: 100%; height: 100%; object-fit: cover;">
         </div>
         <span style="font-size: 0.85rem; font-weight: 600; color: {% if request.args.get('category') == slug or (slug == 'all' and not request.args.get('category')) %}var(--primary-color){% else %}var(--text-muted){% endif %};">{{ name }}</span>
     </a>
@@ -98,14 +98,19 @@ function startVoiceSearch() {
 
 
 
-<h2 style="margin-bottom: 1.5rem;">
-    {% if request.args.get('category') %}
-        {% set cat_map = {'tiffin': '📦 Tiffin Service', 'breakfast': '🍳 Breakfast', 'lunch': '🍱 Lunch', 'dinner': '🌙 Dinner', 'sweets': '🍰 Sweets & Desserts', 'beverages': '🥤 Beverages'} %}
-        {{ cat_map.get(request.args.get('category'), request.args.get('category')|capitalize) }}
-    {% else %}
-        🍽️ Explore All Dishes
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+    <h2 style="margin: 0;">
+        {% if request.args.get('category') %}
+            {% set cat_map = {'tiffin': '📦 Tiffin Service', 'breakfast': '🍳 Breakfast', 'lunch': '🍱 Lunch', 'dinner': '🌙 Dinner', 'sweets': '🍰 Sweets & Desserts', 'beverages': '🥤 Beverages'} %}
+            {{ cat_map.get(request.args.get('category'), request.args.get('category')|capitalize) }}
+        {% else %}
+            🍽️ Explore All Dishes
+        {% endif %}
+    </h2>
+    {% if request.args.get('category') or request.args.get('search') or request.args.get('is_veg') or request.args.get('max_price') %}
+    <a href="{{ url_for('index') }}" style="color: var(--primary-color); text-decoration: none; font-weight: 600; font-size: 0.9rem;">✕ Clear All Filters</a>
     {% endif %}
-</h2>
+</div>
 <div class="food-grid">
     {% for item in food_items %}
     <div class="food-card">
@@ -133,7 +138,10 @@ function startVoiceSearch() {
         </div>
     </div>
     {% else %}
-    <p style="grid-column: 1/-1; text-align: center; color: var(--text-muted);">No food items found matching your criteria.</p>
+    <div style="grid-column: 1/-1; text-align: center; padding: 3rem; background: #f9f9f9; border-radius: 12px; border: 1px dashed #ddd;">
+        <p style="color: var(--text-muted); font-size: 1.2rem; margin-bottom: 1rem;">No food items found matching your current filters. 🍱</p>
+        <a href="{{ url_for('index') }}" class="btn btn-secondary">Clear All Filters and Show Everything</a>
+    </div>
     {% endfor %}
 </div>
 {% endblock %}
