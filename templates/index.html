@@ -1,7 +1,20 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="hero" style="text-align: center; margin-bottom: 3rem;">
+<!-- Live Activity Ticker -->
+<div style="background: #fff5f0; border-bottom: 1px solid #ffe8da; padding: 0.5rem 1rem; overflow: hidden; white-space: nowrap; position: relative;">
+    <div id="activityTicker" style="display: inline-block; animation: tickerScroll 30s linear infinite; font-size: 0.85rem; color: #ff5200; font-weight: 600;">
+        🔥 LIVE: Ravi just ordered a Breakfast Tiffin! • 🥗 Fresh Salad just prepared by Mom's Kitchen • 🚚 5 active deliveries in your area • ⭐ New 5-star review for Masala Chai • 👨‍🍳 3 Cooks just went online! • 🍱 Lunch specials are selling fast!
+    </div>
+</div>
+<style>
+    @keyframes tickerScroll {
+        0% { transform: translateX(100%); }
+        100% { transform: translateX(-100%); }
+    }
+</style>
+
+<div class="hero" style="text-align: center; margin-bottom: 3rem; margin-top: 2rem;">
     <h1 style="font-size: 2.5rem; margin-bottom: 1rem;">Fresh, Healthy, Home-Cooked</h1>
     <p style="color: var(--text-muted); font-size: 1.1rem; max-width: 600px; margin: 0 auto;">
         Discover delicious meals prepared by passionate home cooks in your neighborhood.

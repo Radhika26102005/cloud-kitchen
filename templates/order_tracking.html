@@ -153,8 +153,18 @@
         .step-sub { font-size: 0.75rem; }
         .step-icon { margin: 0; flex-shrink: 0; }
     }
+    @keyframes pulse {
+        0% { transform: scale(1); opacity: 1; }
+        50% { transform: scale(1.5); opacity: 0.5; }
+        100% { transform: scale(1); opacity: 1; }
+    }
+    .rider-pulse {
+        width: 15px; height: 15px; background: #2ecc71; border-radius: 50%;
+        animation: pulse 1.5s infinite; position: absolute; top: -5px; right: -5px; border: 2px solid white;
+    }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+<audio id="statusSound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" preload="auto"></audio>
 
 <div class="tracking-container">
     <div class="tracking-header">
@@ -305,9 +315,20 @@
                 });
         }
 
+        // Live Status Sound Logic
+        let lastKnownStatus = orderStatus;
+        socket.on('status_change', (data) => {
+            if (data.order_id == orderId && data.status !== lastKnownStatus) {
+                document.getElementById('statusSound').play().catch(e => console.log("Audio blocked"));
+                lastKnownStatus = data.status;
+                setTimeout(() => window.location.reload(), 1500);
+            }
+        });
+
         // Map & Tracking
-        const bikeIcon = L.icon({
-            iconUrl: 'https://cdn-icons-png.flaticon.com/512/3198/3198336.png',
+        const bikeIcon = L.divIcon({
+            className: 'custom-div-icon',
+            html: '<div style="position: relative;"><img src="https://cdn-icons-png.flaticon.com/512/3198/3198336.png" style="width: 40px; height: 40px;"><div class="rider-pulse"></div></div>',
             iconSize: [40, 40],
             iconAnchor: [20, 20]
         });

@@ -261,23 +261,32 @@
                     <p style="margin: 0; font-size: 0.9rem;"><strong>Order #${data.order_id}</strong> is ${data.status}</p>
                     <div style="display: flex; gap: 10px; margin-top: 5px;">
                         <a href="/delivery/claim/${data.order_id}" 
-                           style="background: #ff5200; color: white; text-decoration: none; padding: 0.6rem 1rem; border-radius: 8px; font-weight: bold; flex: 1; text-align: center;">
-                           Claim Now 🛵
-                        </a>
-                        <button onclick="this.parentElement.parentElement.parentElement.remove()" 
-                                style="background: #eee; border: none; padding: 0.6rem; border-radius: 8px; cursor: pointer;">
-                                ✕
-                        </button>
-                    </div>
-                </div>
-            `;
-            document.body.appendChild(popup);
+            console.log("⚡ LIVE ALERT: New order available!", data);
             
-            // Audio alert if possible
-            try {
-                const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3');
-                audio.play();
-            } catch(e) {}
+            // Play sound
+            const sound = document.getElementById('notifSound');
+            if (sound) sound.play().catch(e => console.log("Audio blocked"));
+
+            // Show visual alert
+            const alertId = `alert-${data.order_id || Date.now()}`;
+            const alertDiv = document.createElement('div');
+            alertDiv.id = alertId;
+            alertDiv.className = 'new-order-alert';
+            alertDiv.innerHTML = `
+                <div style="flex: 1;">
+                    <p style="margin: 0; font-weight: 700;">🔔 ${data.message}</p>
+                    <p style="margin: 0.2rem 0 0 0; font-size: 0.8rem; opacity: 0.9;">Accept before other riders do!</p>
+                </div>
+                <button onclick="location.reload()" style="background: white; color: #ff5200; border: none; padding: 0.4rem 0.8rem; border-radius: 4px; font-weight: 700; cursor: pointer;">Refresh</button>
+            `;
+            document.body.appendChild(alertDiv);
+            
+            setTimeout(() => {
+                if (document.getElementById(alertId)) {
+                    document.getElementById(alertId).style.animation = 'slideOut 0.5s ease forwards';
+                    setTimeout(() => document.getElementById(alertId).remove(), 500);
+                }
+            }, 8000);
         });
 
         // Listen for removal of orders claimed by others
@@ -289,21 +298,19 @@
                 el.style.transition = 'all 0.5s ease';
                 setTimeout(() => el.remove(), 500);
             }
-            // Also remove any pending alert for this order
             const alertEl = document.getElementById(`alert-${data.order_id}`);
             if (alertEl) alertEl.remove();
         });
 
-        // Listen for ANY status update to refresh earnings and active lists
+        // Listen for ANY status update
         socket.on('status_change', (data) => {
             console.log("⚡ LIVE UPDATE: Order status changed!", data);
-            // Refresh quickly if it's our order or if it's a critical change
             setTimeout(() => {
                 window.location.reload();
             }, 1000);
         });
-    {% endif %}
-</script>
+    </script>
+{% endif %}
 
 <style>
 @keyframes slideIn {
