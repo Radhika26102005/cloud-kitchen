@@ -1,6 +1,19 @@
 {% extends 'base.html' %}
 
 {% block content %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+    .map-icon {
+        font-size: 24px;
+        background: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }
+</style>
 <div style="max-width: 1000px; margin: 0 auto;">
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1.5rem; margin: 2rem 0;">
         <div style="background: white; padding: 1.2rem; border-radius: var(--border-radius); box-shadow: var(--shadow); border-top: 5px solid #ff5200;">
@@ -65,17 +78,44 @@
                             <span style="font-size: 0.75rem; color: var(--text-muted);">Open in Google Maps</span>
                         </div>
                         <div style="display: flex; flex-direction: column; gap: 0.8rem;">
-                            <a href="https://www.google.com/maps/search/?api=1&query={{ (order.items[0].food_item.seller.location or '')|urlencode }}" target="_blank" 
-                               style="display: flex; align-items: center; justify-content: center; gap: 12px; background: #4285F4; color: white; padding: 1rem; border-radius: 12px; text-decoration: none; font-weight: 700; transition: 0.3s; box-shadow: 0 4px 12px rgba(66, 133, 244, 0.3);">
-                                <span style="font-size: 1.2rem;">🏪</span>
-                                <span>Get Directions to Kitchen</span>
+                            <!-- Embedded Mini Map -->
+                            <div id="map-{{ order.id }}" style="height: 180px; border-radius: 12px; margin-bottom: 0.5rem; border: 1px solid #ddd; z-index: 1;"></div>
+                            <script>
+                                (function() {
+                                    var kitchenLat = {{ order.items[0].food_item.seller.lat or 0 }};
+                                    var kitchenLng = {{ order.items[0].food_item.seller.lng or 0 }};
+                                    var customerLat = {{ order.delivery_target_lat or 0 }};
+                                    var customerLng = {{ order.delivery_target_lng or 0 }};
+
+                                    var miniMap = L.map('map-{{ order.id }}', { zoomControl: false }).setView([kitchenLat || 28.61, kitchenLng || 77.20], 13);
+                                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(miniMap);
+
+                                    var kitchenIcon = L.divIcon({ html: '🏪', className: 'map-icon', iconSize: [24, 24] });
+                                    var customerIcon = L.divIcon({ html: '🏠', className: 'map-icon', iconSize: [24, 24] });
+
+                                    if (kitchenLat) L.marker([kitchenLat, kitchenLng], {icon: kitchenIcon}).addTo(miniMap).bindPopup("Kitchen");
+                                    if (customerLat) L.marker([customerLat, customerLng], {icon: customerIcon}).addTo(miniMap).bindPopup("Customer");
+
+                                    if (kitchenLat && customerLat) {
+                                        var bounds = L.latLngBounds([[kitchenLat, kitchenLng], [customerLat, customerLng]]);
+                                        miniMap.fitBounds(bounds, {padding: [30, 30]});
+                                        L.polyline([[kitchenLat, kitchenLng], [customerLat, customerLng]], {color: '#ff5200', dashArray: '5, 10'}).addTo(miniMap);
+                                    }
+                                })();
+                            </script>
+
+                            {% set kitchen_dest = order.items[0].food_item.seller.lat ~ ',' ~ order.items[0].food_item.seller.lng if (order.items[0].food_item.seller.lat) else (order.items[0].food_item.seller.location or '') %}
+                            <a href="https://www.google.com/maps/dir/?api=1&destination={{ kitchen_dest|urlencode }}" target="_blank" 
+                               style="display: flex; align-items: center; justify-content: center; gap: 12px; background: #4285F4; color: white; padding: 0.8rem; border-radius: 12px; text-decoration: none; font-weight: 700; transition: 0.3s; box-shadow: 0 4px 12px rgba(66, 133, 244, 0.3);">
+                                <span style="font-size: 1.1rem;">🏪</span>
+                                <span>Directions to Kitchen (Pickup)</span>
                             </a>
                             
                             {% set dest = order.delivery_target_lat ~ ',' ~ order.delivery_target_lng if (order.delivery_target_lat and order.delivery_target_lng) else (order.delivery_address or '') %}
                             <a href="https://www.google.com/maps/dir/?api=1&destination={{ dest|urlencode }}" target="_blank" 
-                               style="display: flex; align-items: center; justify-content: center; gap: 12px; background: #ea4335; color: white; padding: 1rem; border-radius: 12px; text-decoration: none; font-weight: 700; transition: 0.3s; box-shadow: 0 4px 12px rgba(234, 67, 53, 0.3);">
-                                <span style="font-size: 1.2rem;">🏠</span>
-                                <span>Get Directions to Customer</span>
+                               style="display: flex; align-items: center; justify-content: center; gap: 12px; background: #ea4335; color: white; padding: 0.8rem; border-radius: 12px; text-decoration: none; font-weight: 700; transition: 0.3s; box-shadow: 0 4px 12px rgba(234, 67, 53, 0.3);">
+                                <span style="font-size: 1.1rem;">🏠</span>
+                                <span>Directions to Customer (Drop)</span>
                             </a>
                         </div>
                         <div style="margin-top: 1rem; padding: 0.8rem; background: white; border-radius: 8px; font-size: 0.85rem; color: #444; border: 1px dashed #ccc;">
