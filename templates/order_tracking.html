@@ -79,13 +79,46 @@
             </div>
 
             {% if order.delivery_person_id %}
-            <div style="background: #e8f8f5; padding: 1rem; border-radius: 12px; margin: 1.5rem 0; border-left: 5px solid #2ecc71;">
-                <p style="margin: 0; font-weight: 700; color: #16a085;">🛵 Delivery Partner:</p>
-                <p style="margin: 0.3rem 0; font-weight: 600; font-size: 1.1rem;">{{ order.delivery_person.username }}</p>
-                <p style="margin: 0.2rem 0; font-size: 0.9rem;">📞 {{ order.delivery_person.phone }}</p>
-                <p style="margin: 0; font-size: 0.8rem; color: #27ae60;">✨ Partner is assigned and ready!</p>
-            </div>
+                {% if order.status in ['Going to Pick Up', 'Arrived at Kitchen'] %}
+                <!-- Partner on the way (Yellow/Orange Alert) -->
+                <div style="background: #fff9e6; padding: 1.2rem; border-radius: 12px; margin: 1.5rem 0; border-left: 5px solid #f39c12; border: 1px solid #ffeeba;">
+                    <p style="margin: 0; font-weight: 700; color: #9a7d0a; display: flex; align-items: center; gap: 8px;">
+                        <span style="display: inline-block; width: 10px; height: 10px; background: #f39c12; border-radius: 50%; animation: pulse 1.5s infinite;"></span>
+                        🛵 Partner is on the way:
+                    </p>
+                    <p style="margin: 0.5rem 0 0 0; font-size: 1.1rem; font-weight: 700; color: #d35400;">
+                        {{ order.delivery_person.username }} 
+                        {% if order.status == 'Arrived at Kitchen' %}
+                        has arrived at the kitchen!
+                        {% else %}
+                        is heading to the kitchen...
+                        {% endif %}
+                    </p>
+                    <p style="margin: 0.3rem 0; font-size: 0.9rem;">📞 Contact: {{ order.delivery_person.phone }}</p>
+                </div>
+                {% elif order.status == 'Out for Delivery' %}
+                <!-- Out for Delivery (Green Alert) -->
+                <div style="background: #e8f8f5; padding: 1rem; border-radius: 12px; margin: 1.5rem 0; border-left: 5px solid #2ecc71;">
+                    <p style="margin: 0; font-weight: 700; color: #16a085;">🚚 Your order is on the way!</p>
+                    <p style="margin: 0.3rem 0; font-weight: 600; font-size: 1.1rem;">{{ order.delivery_person.username }} is nearby.</p>
+                    <p style="margin: 0.2rem 0; font-size: 0.9rem;">📞 {{ order.delivery_person.phone }}</p>
+                </div>
+                {% elif order.status == 'Delivered' %}
+                <!-- Delivered -->
+                <div style="background: #f0fdf4; padding: 1rem; border-radius: 12px; margin: 1.5rem 0; border-left: 5px solid #16a34a;">
+                    <p style="margin: 0; font-weight: 700; color: #166534;">✅ Order Delivered</p>
+                    <p style="margin: 0.2rem 0; font-size: 0.9rem;">Successfully delivered by {{ order.delivery_person.username }}</p>
+                </div>
+                {% else %}
+                <!-- Default Assigned (e.g. Paid/Preparing but claimed) -->
+                <div style="background: #f0f9ff; padding: 1rem; border-radius: 12px; margin: 1.5rem 0; border-left: 5px solid #0ea5e9;">
+                    <p style="margin: 0; font-weight: 700; color: #0369a1;">🛵 Partner Assigned:</p>
+                    <p style="margin: 0.3rem 0; font-weight: 600;">{{ order.delivery_person.username }} will pick up soon.</p>
+                    <p style="margin: 0.2rem 0; font-size: 0.9rem;">📞 {{ order.delivery_person.phone }}</p>
+                </div>
+                {% endif %}
             {% else %}
+            <!-- Looking for Partner (Yellow Alert) -->
             <div style="background: #fff9e6; padding: 1.2rem; border-radius: 12px; margin: 1.5rem 0; border-left: 5px solid #f1c40f; border: 1px solid #ffeeba;">
                 <p style="margin: 0; font-weight: 700; color: #9a7d0a; display: flex; align-items: center; gap: 8px;">
                     <span style="display: inline-block; width: 10px; height: 10px; background: #ff5200; border-radius: 50%; animation: pulse 1.5s infinite;"></span>
@@ -97,6 +130,7 @@
                 <p style="margin: 0.5rem 0 0 0; font-size: 0.9rem;">We are assigning a delivery partner near the kitchen...</p>
                 {% endif %}
             </div>
+            {% endif %}
             <style>
                 @keyframes pulse {
                     0% { transform: scale(1); opacity: 1; }

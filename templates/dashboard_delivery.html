@@ -28,7 +28,7 @@
             <h3>Available Orders</h3>
             {% if available_orders %}
                 {% for order in available_orders %}
-                <div style="border: 1px solid var(--border-color); padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+                <div id="available-order-{{ order.id }}" style="border: 1px solid var(--border-color); padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
                     <p><strong>Order #{{ order.id }}</strong></p>
                     <div style="background: #fdf2f2; padding: 0.5rem; border-radius: 5px; margin: 0.5rem 0; font-size: 0.85rem;">
                         <p style="margin: 0;">👨‍🍳 <strong>Cook:</strong> {{ order.items[0].food_item.seller.username if order.items else 'Unknown' }}</p>
@@ -270,13 +270,27 @@
             } catch(e) {}
         });
 
+        // Listen for removal of orders claimed by others
+        socket.on('remove_available_order', (data) => {
+            const el = document.getElementById(`available-order-${data.order_id}`);
+            if (el) {
+                el.style.opacity = '0';
+                el.style.transform = 'scale(0.9)';
+                el.style.transition = 'all 0.5s ease';
+                setTimeout(() => el.remove(), 500);
+            }
+            // Also remove any pending alert for this order
+            const alertEl = document.getElementById(`alert-${data.order_id}`);
+            if (alertEl) alertEl.remove();
+        });
+
         // Listen for ANY status update to refresh earnings and active lists
         socket.on('status_change', (data) => {
             console.log("⚡ LIVE UPDATE: Order status changed!", data);
-            // Refresh quickly
+            // Refresh quickly if it's our order or if it's a critical change
             setTimeout(() => {
                 window.location.reload();
-            }, 500);
+            }, 1000);
         });
     {% endif %}
 </script>

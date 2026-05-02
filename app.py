@@ -995,6 +995,11 @@ def checkout():
             
             # Notify
             socketio.emit('new_order_alert', {'message': f'New COD Order #{new_order.id}'}, room='sellers')
+            socketio.emit('new_order_alert', {
+                'order_id': new_order.id,
+                'message': f'New COD Delivery available! #{new_order.id}',
+                'status': 'Pending'
+            }, room='delivery')
             flash(f'Order #{new_order.id} placed successfully (Cash on Delivery)!', 'success')
             return redirect(url_for('order_tracking', order_id=new_order.id))
 
@@ -1089,6 +1094,11 @@ def razorpay_verify():
         db.session.commit()
         
         socketio.emit('new_order_alert', {'message': f'New Order #{new_order.id}'}, room='sellers')
+        socketio.emit('new_order_alert', {
+            'order_id': new_order.id,
+            'message': f'New Delivery available! #{new_order.id}',
+            'status': 'Paid'
+        }, room='delivery')
         
         return jsonify({'status': 'success', 'order_id': new_order.id})
     except Exception as e:
@@ -1331,6 +1341,9 @@ def claim_order(order_id):
             'status': order.status,
             'message': f'Rider {current_user.username} has accepted order #{order.id}!'
         })
+        
+        # Specific event to remove from Available list for other riders
+        socketio.emit('remove_available_order', {'order_id': order.id}, room='delivery')
         
         flash('Order claimed successfully!', 'success')
     return redirect(url_for('delivery_dashboard'))
