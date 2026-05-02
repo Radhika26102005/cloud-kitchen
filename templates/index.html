@@ -24,13 +24,13 @@
 <!-- Category Pills (Zomato Style) -->
 <div style="display: flex; gap: 2rem; overflow-x: auto; padding: 1.5rem 0.5rem; margin-bottom: 2rem; scrollbar-width: none; -ms-overflow-style: none;">
     {% set cats = [
-        ('all', 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=200&h=200&fit=crop', 'All'),
-        ('tiffin', 'https://images.unsplash.com/photo-1547050262-ce98ce6d859b?w=200&h=200&fit=crop', 'Tiffin'),
-        ('breakfast', 'https://images.unsplash.com/photo-1533089860892-a7c6f0a88666?w=200&h=200&fit=crop', 'Breakfast'),
-        ('lunch', 'https://images.unsplash.com/photo-1546548970-71785318a17b?w=200&h=200&fit=crop', 'Lunch'),
-        ('dinner', 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=200&h=200&fit=crop', 'Dinner'),
-        ('sweets', 'https://images.unsplash.com/photo-1563729784474-d77dbb933a9e?w=200&h=200&fit=crop', 'Sweets'),
-        ('beverages', 'https://images.unsplash.com/photo-1544145945-f904253d0c71?w=200&h=200&fit=crop', 'Drinks')
+        ('all', 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&h=400&auto=format&fit=crop', 'All'),
+        ('tiffin', 'https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=400&h=400&auto=format&fit=crop', 'Tiffin'),
+        ('breakfast', 'https://images.unsplash.com/photo-1533089860892-a7c6f0a88666?w=400&h=400&auto=format&fit=crop', 'Breakfast'),
+        ('lunch', 'https://images.unsplash.com/photo-1546548970-71785318a17b?w=400&h=400&auto=format&fit=crop', 'Lunch'),
+        ('dinner', 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=400&h=400&auto=format&fit=crop', 'Dinner'),
+        ('sweets', 'https://images.unsplash.com/photo-1563729784474-d77dbb933a9e?w=400&h=400&auto=format&fit=crop', 'Sweets'),
+        ('beverages', 'https://images.unsplash.com/photo-1544145945-f904253d0c71?w=400&h=400&auto=format&fit=crop', 'Drinks')
     ] %}
     {% for slug, img, name in cats %}
     <a href="{{ url_for('index', category=slug if slug != 'all' else '') }}" 
