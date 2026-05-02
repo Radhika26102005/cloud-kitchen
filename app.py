@@ -282,7 +282,8 @@ def index():
         category = request.args.get('category')
         
         try:
-            query = FoodItem.query.join(User, FoodItem.seller_id == User.id).filter(User.is_open == True, FoodItem.quantity > 0)
+            # Simplified query to ensure visibility
+            query = FoodItem.query.filter(FoodItem.quantity > 0)
             
             if search:
                 query = query.filter(FoodItem.name.ilike(f'%{search}%'))
