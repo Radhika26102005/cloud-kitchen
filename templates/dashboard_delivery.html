@@ -290,33 +290,31 @@
     }
 </script>
     {% if current_user.is_authenticated %}
-        socket.on('connect', () => {
-            socket.emit('join', {room: 'delivery'});
-        });
+    <style>
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes slideOut { from { transform: translateX(0); opacity: 1; } to { transform: translateX(100%); opacity: 0; } }
+        
+        .new-order-alert {
+            position: fixed; top: 20px; right: 20px; 
+            background: #ff5200; color: white; 
+            padding: 1.2rem; border-radius: 12px; 
+            z-index: 10000; box-shadow: 0 10px 25px rgba(255,82,0,0.3); 
+            display: flex; align-items: center; gap: 15px;
+            animation: slideIn 0.4s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+            min-width: 320px;
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
 
-        socket.on('new_order_alert', (data) => {
-            const popup = document.createElement('div');
-            popup.id = `alert-${data.order_id}`;
-            popup.style = `
-                position: fixed; top: 20px; right: 20px; 
-                background: white; color: #333; 
-                padding: 1.5rem; border-radius: 15px; 
-                z-index: 10000; box-shadow: 0 10px 30px rgba(0,0,0,0.3); 
-                border-left: 8px solid #ff5200; 
-                min-width: 300px;
-                animation: slideIn 0.5s ease-out;
-                font-family: sans-serif;
-            `;
-            
-            popup.innerHTML = `
-                <div style="display: flex; flex-direction: column; gap: 10px;">
-                    <h4 style="margin: 0; color: #ff5200;">🔔 New Order Available!</h4>
-                    <p style="margin: 0; font-size: 0.9rem;"><strong>Order #${data.order_id}</strong> is ${data.status}</p>
-                    <div style="display: flex; gap: 10px; margin-top: 5px;">
-                        <a href="/delivery/claim/${data.order_id}" 
+    <script>
+        socket.on('connect', () => { 
+            socket.emit('join', {room: 'delivery'}); 
+        }); 
+
+        socket.on('new_order_alert', (data) => { 
             console.log("⚡ LIVE ALERT: New order available!", data);
             
-            // Play sound
+            // Play sound (if element exists)
             const sound = document.getElementById('notifSound');
             if (sound) sound.play().catch(e => console.log("Audio blocked"));
 
@@ -327,22 +325,22 @@
             alertDiv.className = 'new-order-alert';
             alertDiv.innerHTML = `
                 <div style="flex: 1;">
-                    <p style="margin: 0; font-weight: 700;">🔔 ${data.message}</p>
-                    <p style="margin: 0.2rem 0 0 0; font-size: 0.8rem; opacity: 0.9;">Accept before other riders do!</p>
+                    <p style="margin: 0; font-weight: 700;">🔔 New Order Available!</p>
+                    <p style="margin: 0.2rem 0 0 0; font-size: 0.85rem;">Order #${data.order_id} is waiting for pickup.</p>
                 </div>
-                <button onclick="location.reload()" style="background: white; color: #ff5200; border: none; padding: 0.4rem 0.8rem; border-radius: 4px; font-weight: 700; cursor: pointer;">Refresh</button>
+                <button onclick="location.reload()" style="background: white; color: #ff5200; border: none; padding: 0.6rem 1rem; border-radius: 8px; font-weight: 800; cursor: pointer; transition: 0.2s;">View Order</button>
             `;
             document.body.appendChild(alertDiv);
             
             setTimeout(() => {
-                if (document.getElementById(alertId)) {
-                    document.getElementById(alertId).style.animation = 'slideOut 0.5s ease forwards';
-                    setTimeout(() => document.getElementById(alertId).remove(), 500);
+                const el = document.getElementById(alertId);
+                if (el) {
+                    el.style.animation = 'slideOut 0.5s ease forwards';
+                    setTimeout(() => el.remove(), 500);
                 }
             }, 8000);
-        });
+        }); 
 
-        // Listen for removal of orders claimed by others
         socket.on('remove_available_order', (data) => {
             const el = document.getElementById(`available-order-${data.order_id}`);
             if (el) {
@@ -351,24 +349,14 @@
                 el.style.transition = 'all 0.5s ease';
                 setTimeout(() => el.remove(), 500);
             }
-            const alertEl = document.getElementById(`alert-${data.order_id}`);
-            if (alertEl) alertEl.remove();
         });
 
-        // Listen for ANY status update
         socket.on('status_change', (data) => {
             console.log("⚡ LIVE UPDATE: Order status changed!", data);
             setTimeout(() => {
                 window.location.reload();
-            }, 1000);
+            }, 1500);
         });
     </script>
-{% endif %}
-
-<style>
-@keyframes slideIn {
-    from { transform: translateX(100%); opacity: 0; }
-    to { transform: translateX(0); opacity: 1; }
-}
-</style>
+    {% endif %}
 {% endblock %}
