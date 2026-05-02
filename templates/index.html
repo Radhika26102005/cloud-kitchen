@@ -24,19 +24,20 @@
 <!-- Category Pills (Zomato Style) -->
 <div style="display: flex; gap: 2rem; overflow-x: auto; padding: 1.5rem 0.5rem; margin-bottom: 2rem; scrollbar-width: none; -ms-overflow-style: none;">
     {% set cats = [
-        ('all', 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&h=400&auto=format&fit=crop', 'All'),
-        ('tiffin', 'https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=400&h=400&auto=format&fit=crop', 'Tiffin'),
-        ('breakfast', 'https://images.unsplash.com/photo-1533089860892-a7c6f0a88666?w=400&h=400&auto=format&fit=crop', 'Breakfast'),
-        ('lunch', 'https://images.unsplash.com/photo-1546548970-71785318a17b?w=400&h=400&auto=format&fit=crop', 'Lunch'),
-        ('dinner', 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=400&h=400&auto=format&fit=crop', 'Dinner'),
-        ('sweets', 'https://images.unsplash.com/photo-1563729784474-d77dbb933a9e?w=400&h=400&auto=format&fit=crop', 'Sweets'),
-        ('beverages', 'https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?w=400&h=400&auto=format&fit=crop', 'Drinks')
+        ('all', 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&h=400&fit=crop', 'All'),
+        ('tiffin', 'https://images.unsplash.com/photo-1626777553732-4899533a4590?w=400&h=400&fit=crop', 'Tiffin'),
+        ('breakfast', 'https://images.unsplash.com/photo-1533089860892-a7c6f0a88666?w=400&h=400&fit=crop', 'Breakfast'),
+        ('lunch', 'https://images.unsplash.com/photo-1546548970-71785318a17b?w=400&h=400&fit=crop', 'Lunch'),
+        ('dinner', 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=400&h=400&fit=crop', 'Dinner'),
+        ('sweets', 'https://images.unsplash.com/photo-1563729784474-d77dbb933a9e?w=400&h=400&fit=crop', 'Sweets'),
+        ('beverages', 'https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=400&h=400&fit=crop', 'Drinks')
     ] %}
     {% for slug, img, name in cats %}
     <a href="{{ url_for('index', category=slug if slug != 'all' else '') }}" 
        style="text-decoration: none; color: var(--text-main); text-align: center; flex-shrink: 0; transition: transform 0.3s ease;">
-        <div style="width: 80px; height: 80px; border-radius: 50%; overflow: hidden; margin-bottom: 0.5rem; border: 2px solid {% if request.args.get('category') == slug or (slug == 'all' and not request.args.get('category')) %}var(--primary-color){% else %}transparent{% endif %}; box-shadow: var(--shadow);">
-            <img src="{{ img }}" alt="{{ name }}" style="width: 100%; height: 100%; object-fit: cover;">
+        <div style="width: 80px; height: 80px; border-radius: 50%; overflow: hidden; margin-bottom: 0.5rem; border: 2px solid {% if request.args.get('category') == slug or (slug == 'all' and not request.args.get('category')) %}var(--primary-color){% else %}transparent{% endif %}; box-shadow: var(--shadow); background-color: #f0f0f0; display: flex; align-items: center; justify-content: center;">
+            <img src="{{ img }}" alt="{{ name }}" style="width: 100%; height: 100%; object-fit: cover;" 
+                 onerror="this.onerror=null; this.src='https://cdn-icons-png.flaticon.com/512/3135/3135715.png';">
         </div>
         <span style="font-size: 0.85rem; font-weight: 600; color: {% if request.args.get('category') == slug or (slug == 'all' and not request.args.get('category')) %}var(--primary-color){% else %}var(--text-muted){% endif %};">{{ name }}</span>
     </a>
