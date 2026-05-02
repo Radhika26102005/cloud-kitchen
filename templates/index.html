@@ -30,7 +30,7 @@
         ('lunch', 'https://images.unsplash.com/photo-1546548970-71785318a17b?w=400&h=400&auto=format&fit=crop', 'Lunch'),
         ('dinner', 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=400&h=400&auto=format&fit=crop', 'Dinner'),
         ('sweets', 'https://images.unsplash.com/photo-1563729784474-d77dbb933a9e?w=400&h=400&auto=format&fit=crop', 'Sweets'),
-        ('beverages', 'https://images.unsplash.com/photo-1544145945-f904253d0c71?w=400&h=400&auto=format&fit=crop', 'Drinks')
+        ('beverages', 'https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?w=400&h=400&auto=format&fit=crop', 'Drinks')
     ] %}
     {% for slug, img, name in cats %}
     <a href="{{ url_for('index', category=slug if slug != 'all' else '') }}" 
