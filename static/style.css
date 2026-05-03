@@ -1,28 +1,28 @@
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap');
 
 :root {
-  --primary-color: #CB8587; /* Soft Rose Contrast */
+  --primary-color: #CB8587; 
   --primary-hover: #b57274;
-  --bg-color: #EDDADA; /* Main Soothing Background */
-  --card-bg: rgba(255, 255, 255, 0.95);
-  --text-main: #5a4a4b; /* Deep Muted Brown/Rose */
-  --text-muted: #8e7d7e;
-  --border-color: #e5d5d6;
-  --shadow: 0 12px 40px rgba(203, 133, 135, 0.12);
-  --shadow-hover: 0 20px 50px rgba(203, 133, 135, 0.2);
-  --border-radius: 24px; /* More rounded = cuter */
-  --glass-bg: rgba(255, 255, 255, 0.85);
-  --accent-sage: #D6D4AD;
-  --accent-olive: #8E8B63;
+  --bg-color: #fdf5f5; /* Lighter, faded background */
+  --card-bg: rgba(255, 255, 255, 0.7);
+  --text-main: #6b5354; 
+  --text-muted: #a38b8c;
+  --border-color: rgba(203, 133, 135, 0.15);
+  --shadow: 0 15px 35px rgba(203, 133, 135, 0.1);
+  --shadow-hover: 0 25px 50px rgba(203, 133, 135, 0.2);
+  --border-radius: 30px; /* Even softer */
+  --glass-bg: rgba(255, 255, 255, 0.6);
+  --accent-soft-pink: #fce4ec;
+  --accent-lavender: #f3e5f5;
 }
 
 body {
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Quicksand', sans-serif;
   background-color: var(--bg-color);
   background-image: 
-    radial-gradient(circle at 10% 20%, rgba(214, 212, 173, 0.4) 0%, transparent 40%), 
-    radial-gradient(circle at 90% 80%, rgba(142, 139, 99, 0.2) 0%, transparent 40%),
-    linear-gradient(135deg, #EDDADA 0%, #f7ebeb 100%);
+    radial-gradient(circle at 0% 0%, #EDDADA 0%, transparent 50%),
+    radial-gradient(circle at 100% 0%, #fce4ec 0%, transparent 50%),
+    radial-gradient(circle at 50% 100%, #f3e5f5 0%, transparent 50%);
   background-attachment: fixed;
   color: var(--text-main);
   margin: 0;
@@ -33,17 +33,19 @@ body {
 /* Navbar (Glassmorphism) */
 .navbar {
   background-color: var(--glass-bg);
-  backdrop-filter: blur(15px);
-  -webkit-backdrop-filter: blur(15px);
-  padding: 1rem 4rem;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  padding: 1.2rem 4rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.03);
+  box-shadow: 0 10px 40px rgba(203, 133, 135, 0.05);
   position: sticky;
-  top: 0;
+  top: 15px;
   z-index: 100;
-  border-bottom: 1px solid rgba(255,255,255,0.3);
+  border: 1px solid rgba(255,255,255,0.4);
+  margin: 15px 20px;
+  border-radius: 50px;
 }
 
 .navbar-brand {
@@ -103,9 +105,15 @@ body {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #CB8587 0%, #e09b9d 100%);
+  background: linear-gradient(135deg, #CB8587 0%, #ffc1c3 100%);
   color: white !important;
-  box-shadow: 0 6px 20px rgba(203, 133, 135, 0.3);
+  box-shadow: 0 10px 25px rgba(203, 133, 135, 0.25);
+  transition: all 0.4s ease;
+}
+
+.btn-primary:hover {
+  transform: translateY(-3px) scale(1.05);
+  box-shadow: 0 15px 35px rgba(203, 133, 135, 0.35);
 }
 
 .btn-primary:hover {
@@ -172,20 +180,23 @@ body {
 }
 
 .food-card {
-  background-color: var(--card-bg);
+  background-color: var(--glass-bg);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
   border-radius: var(--border-radius);
   overflow: hidden;
   box-shadow: var(--shadow);
-  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   display: flex;
   flex-direction: column;
   position: relative;
-  border: 1px solid rgba(255,255,255,0.5);
+  border: 1px solid rgba(255,255,255,0.6);
 }
 
 .food-card:hover {
-  box-shadow: var(--shadow-hover);
-  transform: translateY(-10px);
+  box-shadow: 0 30px 60px rgba(203, 133, 135, 0.25);
+  transform: translateY(-12px) scale(1.02);
+  border-color: var(--primary-color);
 }
 
 .food-img {
@@ -214,10 +225,12 @@ body {
 }
 
 .food-title {
+  font-family: 'Playfair Display', serif;
   margin: 0 0 0.5rem 0;
-  font-size: 1.4rem;
+  font-size: 1.6rem;
   font-weight: 700;
   color: var(--text-main);
+  letter-spacing: -0.5px;
 }
 
 .food-desc {
