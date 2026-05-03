@@ -240,7 +240,11 @@ def run_migrations():
         migrations = [
             ('user', 'lat', 'DOUBLE PRECISION'), # FLOAT in Postgres
             ('user', 'lng', 'DOUBLE PRECISION'),
-            ('food_item', 'is_veg', 'BOOLEAN DEFAULT TRUE')
+            ('user', 'avg_rating', 'DOUBLE PRECISION DEFAULT 0.0'),
+            ('user', 'total_reviews', 'INTEGER DEFAULT 0'),
+            ('food_item', 'is_veg', 'BOOLEAN DEFAULT TRUE'),
+            ('food_item', 'avg_rating', 'DOUBLE PRECISION DEFAULT 0.0'),
+            ('food_item', 'total_reviews', 'INTEGER DEFAULT 0')
         ]
         
         for table, col, col_type in migrations:
