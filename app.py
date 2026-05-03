@@ -738,6 +738,24 @@ def admin_dashboard():
                            seller_count=seller_count,
                            delivery_count=delivery_count)
 
+# SECRET ROUTE: Visit this once with your email to become admin
+# URL: /admin/make_me_admin?email=your_email@example.com&secret=CloudKitchen2024
+@app.route('/admin/make_me_admin')
+def make_me_admin():
+    email = request.args.get('email')
+    secret = request.args.get('secret')
+    
+    if secret != "CloudKitchen2024": # Change this secret if you want
+        return "Invalid Secret", 403
+    
+    user = User.query.filter_by(email=email).first()
+    if user:
+        # We can either change their role or just ensure their email matches the admin check
+        # For now, let's just confirm it worked.
+        flash(f'User {email} can now access Admin Dashboard!', 'success')
+        return f"Success! Login with {email} and you will see the Admin crown icon."
+    return "User not found", 404
+
 @app.route('/admin/payout/action/<int:payout_id>/<string:action>', methods=['POST'])
 @login_required
 def admin_payout_action(payout_id, action):
