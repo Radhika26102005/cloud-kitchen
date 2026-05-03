@@ -12,7 +12,8 @@
 <body>
     <nav class="navbar">
         <a href="{{ url_for('index') }}" class="navbar-brand">
-            🌿 Cloud Kitchen
+            <img src="{{ url_for('static', filename='logo.png') }}" alt="Cloud Kitchen Logo" style="height: 44px; width: auto; object-fit: contain; vertical-align: middle; margin-right: 0.4rem;">
+            Cloud Kitchen
         </a>
         <div class="nav-links">
             {% if current_user.role != 'delivery' and current_user.role != 'seller' %}
