@@ -694,12 +694,19 @@ def toggle_kitchen_status():
         current_user.is_open = not current_user.is_open
         db.session.commit()
         
-        # If AJAX request
+        status_str = "Open" if current_user.is_open else "Closed"
+        
+        # Broadcast status change to all users
+        socketio.emit('kitchen_update', {
+            'seller_id': current_user.id,
+            'is_open': current_user.is_open,
+            'username': current_user.username
+        })
+
         if request.is_json or request.headers.get('Content-Type') == 'application/json':
             return jsonify({'success': True, 'is_open': current_user.is_open})
             
-        status = "Open" if current_user.is_open else "Closed"
-        flash(f'Kitchen is now {status}!', 'info')
+        flash(f'Kitchen is now {status_str}!', 'info')
     return redirect(url_for('seller_dashboard'))
 
 @app.route('/admin/dashboard')
@@ -1209,6 +1216,8 @@ def razorpay_verify():
             f = FoodItem.query.get(c.food_item_id)
             oi = OrderItem(order_id=new_order.id, food_item_id=f.id, quantity=c.quantity, price=f.price)
             f.quantity -= c.quantity
+            # Live Stock Update
+            socketio.emit('stock_update', {'item_id': f.id, 'new_quantity': f.quantity})
             db.session.add(oi)
             db.session.delete(c)
 
@@ -1296,6 +1305,8 @@ def debug_checkout_bypass():
         f = FoodItem.query.get(c.food_item_id)
         oi = OrderItem(order_id=new_order.id, food_item_id=f.id, quantity=c.quantity, price=f.price)
         f.quantity -= c.quantity
+        # Live Stock Update
+        socketio.emit('stock_update', {'item_id': f.id, 'new_quantity': f.quantity})
         db.session.add(oi)
         db.session.delete(c)
 
@@ -1349,6 +1360,8 @@ def payment_success():
         f = FoodItem.query.get(c.food_item_id)
         oi = OrderItem(order_id=new_order.id, food_item_id=f.id, quantity=c.quantity, price=f.price)
         f.quantity -= c.quantity
+        # Live Stock Update
+        socketio.emit('stock_update', {'item_id': f.id, 'new_quantity': f.quantity})
         db.session.add(oi)
         db.session.delete(c)
 

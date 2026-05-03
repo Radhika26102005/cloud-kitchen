@@ -114,8 +114,13 @@ function startVoiceSearch() {
 </div>
 <div class="food-grid">
     {% for item in food_items %}
-    <div class="food-card">
-        <img src="{{ item.image_url }}" alt="{{ item.name }}" class="food-img">
+    <div class="food-card" id="food-card-{{ item.id }}" data-seller-id="{{ item.seller_id }}">
+        <div style="position: relative;">
+            <img src="{{ item.image_url }}" alt="{{ item.name }}" class="food-img">
+            <div id="status-overlay-{{ item.seller_id }}" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: {% if item.seller.is_open %}none{% else %}flex{% endif %}; align-items: center; justify-content: center; border-radius: 12px 12px 0 0;">
+                <span style="background: #e74c3c; color: white; padding: 0.5rem 1rem; border-radius: 4px; font-weight: 700;">CLOSED</span>
+            </div>
+        </div>
         <div class="food-info">
             <div style="display: flex; justify-content: space-between; align-items: start;">
                 <div style="display: flex; align-items: center; gap: 0.5rem;">
@@ -128,13 +133,24 @@ function startVoiceSearch() {
             </div>
             <div style="font-size: 0.8rem; color: var(--primary-color); margin-bottom: 0.5rem; font-weight: 600;">
                 <a href="{{ url_for('cook_profile', seller_id=item.seller_id) }}" style="color: inherit; text-decoration: none;">
-                    👨‍🍳 Cooked by: {{ item.seller.username if item.seller else 'Local Kitchen' }}
+                    👨‍🍳 Cooked by: <span id="seller-name-{{ item.seller_id }}">{{ item.seller.username if item.seller else 'Local Kitchen' }}</span>
                 </a>
             </div>
             <p class="food-desc">{{ item.description[:100] }}...</p>
+            <div style="margin-bottom: 1rem; font-size: 0.85rem;">
+                <span id="qty-{{ item.id }}" style="color: {% if item.quantity < 5 %}#e67e22{% else %}#27ae60{% endif %}; font-weight: 700;">
+                    {{ item.quantity }} portions left
+                </span>
+            </div>
             <div class="food-meta">
                 <span class="food-price">₹{{ "%.2f"|format(item.price) }}</span>
-                <a href="{{ url_for('food_detail', item_id=item.id) }}" class="btn btn-primary">View Details</a>
+                <div id="action-{{ item.id }}">
+                    {% if item.quantity > 0 %}
+                        <a href="{{ url_for('food_detail', item_id=item.id) }}" class="btn btn-primary">View Details</a>
+                    {% else %}
+                        <button class="btn" disabled style="background: #ccc;">Sold Out</button>
+                    {% endif %}
+                </div>
             </div>
         </div>
     </div>
@@ -145,4 +161,38 @@ function startVoiceSearch() {
     </div>
     {% endfor %}
 </div>
+
+<script>
+    // Listen for live stock updates
+    socket.on('stock_update', (data) => {
+        const qtyEl = document.getElementById(`qty-${data.item_id}`);
+        const actionEl = document.getElementById(`action-${data.item_id}`);
+        
+        if (qtyEl) {
+            qtyEl.innerText = `${data.new_quantity} portions left`;
+            qtyEl.style.color = data.new_quantity < 5 ? '#e67e22' : '#27ae60';
+            
+            // Add a brief pulse animation
+            qtyEl.style.transition = 'transform 0.3s ease';
+            qtyEl.style.transform = 'scale(1.2)';
+            setTimeout(() => qtyEl.style.transform = 'scale(1)', 300);
+        }
+
+        if (data.new_quantity <= 0 && actionEl) {
+            actionEl.innerHTML = `<button class="btn" disabled style="background: #ccc;">Sold Out</button>`;
+        }
+    });
+
+    // Listen for kitchen open/closed status changes
+    socket.on('kitchen_update', (data) => {
+        // Find all overlays for this seller
+        const overlays = document.querySelectorAll(`[id^="status-overlay-${data.seller_id}"]`);
+        overlays.forEach(overlay => {
+            overlay.style.display = data.is_open ? 'none' : 'flex';
+        });
+
+        // Optional: Show a toast notification
+        console.log(`Kitchen ${data.username} is now ${data.is_open ? 'Open' : 'Closed'}`);
+    });
+</script>
 {% endblock %}
