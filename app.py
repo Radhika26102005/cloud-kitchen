@@ -242,6 +242,7 @@ def run_migrations():
             ('user', 'lng', 'DOUBLE PRECISION'),
             ('user', 'avg_rating', 'DOUBLE PRECISION DEFAULT 0.0'),
             ('user', 'total_reviews', 'INTEGER DEFAULT 0'),
+            ('user', 'wallet_balance', 'DOUBLE PRECISION DEFAULT 0.0'),
             ('food_item', 'is_veg', 'BOOLEAN DEFAULT TRUE'),
             ('food_item', 'avg_rating', 'DOUBLE PRECISION DEFAULT 0.0'),
             ('food_item', 'total_reviews', 'INTEGER DEFAULT 0')
@@ -1409,6 +1410,20 @@ def update_order_status(order_id):
             flash('Cannot revert order status once it is ready or dispatched.', 'warning')
             return redirect(url_for('seller_dashboard'))
 
+        # Wallet Crediting when Delivered
+        if new_status == 'Delivered' and order.status != 'Delivered':
+            # Credit Seller
+            if order.items:
+                seller = User.query.get(order.items[0].food_item.seller_id)
+                if seller:
+                    seller.wallet_balance = (seller.wallet_balance or 0.0) + (order.seller_earnings or 0.0)
+            
+            # Credit Delivery Partner
+            if order.delivery_person_id:
+                rider = User.query.get(order.delivery_person_id)
+                if rider:
+                    rider.wallet_balance = (rider.wallet_balance or 0.0) + (order.delivery_earnings or 0.0)
+
         order.status = new_status
         db.session.commit()
         
@@ -1436,6 +1451,38 @@ def update_order_status(order_id):
     if current_user.role == 'delivery':
         return redirect(url_for('delivery_dashboard'))
     return redirect(url_for('seller_dashboard'))
+
+@app.route('/request_payout', methods=['POST'])
+@login_required
+def request_payout():
+    if current_user.role not in ['seller', 'delivery']:
+        return jsonify({'success': False, 'message': 'Only sellers and riders can request payouts.'})
+    
+    amount = float(request.form.get('amount', 0))
+    if amount <= 0 or amount > (current_user.wallet_balance or 0):
+        flash('Invalid amount or insufficient balance.', 'warning')
+        return redirect(request.referrer or url_for('index'))
+    
+    method = request.form.get('method', 'UPI')
+    details = request.form.get('details', '')
+    
+    # Create Payout Request
+    payout = PayoutRequest(
+        user_id=current_user.id,
+        amount=amount,
+        payment_method=method,
+        details=details,
+        status='Pending'
+    )
+    
+    # Deduct from wallet immediately to prevent double withdrawal
+    current_user.wallet_balance -= amount
+    
+    db.session.add(payout)
+    db.session.commit()
+    
+    flash(f'Payout request for ₹{amount} submitted successfully! It will be processed within 24 hours.', 'success')
+    return redirect(request.referrer or url_for('index'))
 
 @app.route('/cook/<int:seller_id>')
 def cook_profile(seller_id):

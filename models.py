@@ -25,6 +25,9 @@ class User(UserMixin, db.Model):
     # Seller Ratings (Aggregated)
     avg_rating = db.Column(db.Float, default=0.0)
     total_reviews = db.Column(db.Integer, default=0)
+    
+    # Financials
+    wallet_balance = db.Column(db.Float, default=0.0)
 
 class FoodItem(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -126,3 +129,14 @@ class PushSubscription(db.Model):
     p256dh = db.Column(db.String(250), nullable=False)
     auth = db.Column(db.String(250), nullable=False)
     created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
+
+class PayoutRequest(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    amount = db.Column(db.Float, nullable=False)
+    status = db.Column(db.String(50), default='Pending') # Pending, Approved, Rejected, Completed
+    payment_method = db.Column(db.String(100)) # UPI, Bank, etc.
+    details = db.Column(db.String(250)) # UPI ID or Bank Details
+    created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
+    
+    user = db.relationship('User', backref='payout_requests')
