@@ -76,10 +76,15 @@
 
     <div class="reviews-list">
         {% for review in reviews %}
-            <div style="margin-bottom: 1.5rem;">
+            <div style="margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid #f0f0f0;">
                 <div style="display: flex; align-items: center; gap: 1rem;">
-                    <strong>Customer #{{ review.customer_id }}</strong>
-                    <span style="color: #f39c12;">{{ '★' * review.rating }}{{ '☆' * (5 - review.rating) }}</span>
+                    <div style="width: 35px; height: 35px; border-radius: 50%; background: var(--primary-color); color: white; display: flex; align-items: center; justify-content: center; font-weight: 700;">
+                        {{ review.customer.username[0]|upper if review.customer else 'C' }}
+                    </div>
+                    <div>
+                        <strong style="display: block;">{{ review.customer.username if review.customer else 'Anonymous' }}</strong>
+                        <span style="color: #f39c12; font-size: 0.9rem;">{{ '★' * review.rating }}{{ '☆' * (5 - review.rating) }}</span>
+                    </div>
                 </div>
                 <p style="color: var(--text-muted); margin-top: 0.5rem;">{{ review.comment }}</p>
                 {% if review.image_url %}

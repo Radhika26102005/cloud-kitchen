@@ -11,6 +11,11 @@
         <div style="flex: 1;">
             <div style="display: flex; justify-content: space-between; align-items: start;">
                 <h1 style="margin: 0; font-size: 2.2rem;">{{ seller.username }}'s Kitchen</h1>
+                {% if seller.total_reviews > 0 %}
+                <div style="margin-top: 0.5rem; color: #f39c12; font-weight: 700; font-size: 1.2rem;">
+                    ⭐ {{ "%.1f"|format(seller.avg_rating) }} <span style="color: var(--text-muted); font-size: 0.9rem; font-weight: 400;">({{ seller.total_reviews }} ratings)</span>
+                </div>
+                {% endif %}
                 <span class="badge" style="background: {% if seller.is_open %}#2ecc71{% else %}#e74c3c{% endif %}; color: white; padding: 0.5rem 1rem;">
                     {% if seller.is_open %}🟢 Accepting Orders{% else %}🔴 Currently Closed{% endif %}
                 </span>

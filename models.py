@@ -21,6 +21,10 @@ class User(UserMixin, db.Model):
     # OTP Fields
     otp_code = db.Column(db.String(6), nullable=True)
     otp_expiry = db.Column(db.DateTime, nullable=True)
+    
+    # Seller Ratings (Aggregated)
+    avg_rating = db.Column(db.Float, default=0.0)
+    total_reviews = db.Column(db.Integer, default=0)
 
 class FoodItem(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -93,6 +97,8 @@ class Review(db.Model):
     rating = db.Column(db.Integer, nullable=False)
     comment = db.Column(db.Text)
     image_url = db.Column(db.String(250))
+    
+    customer = db.relationship('User', backref='product_reviews')
 
 class Notification(db.Model):
     id = db.Column(db.Integer, primary_key=True)

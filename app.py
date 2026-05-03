@@ -540,6 +540,18 @@ def rate_order(order_id):
                 order.seller_review_image = res['secure_url']
             except Exception as e:
                 print(f"Cloudinary Seller Review Upload Error: {e}")
+        
+        # Update Kitchen Rating based on Order Rating
+        seller = User.query.get(order.items[0].food_item.seller_id) if order.items else None
+        if seller:
+            # We can treat order ratings as separate data points or average them with dish reviews
+            # For simplicity, let's just make sure the kitchen avg_rating reflects everything
+            total_reviews = seller.total_reviews or 0
+            current_avg = seller.avg_rating or 0.0
+            
+            new_total = total_reviews + 1
+            seller.avg_rating = ((current_avg * total_reviews) + int(request.form.get('seller_rating'))) / new_total
+            seller.total_reviews = new_total
                 
     # Rate Delivery
     if request.form.get('delivery_rating'):
@@ -855,6 +867,29 @@ def food_detail(item_id):
                 image_url=image_url
             )
             db.session.add(review)
+            
+            # Update Food Item Rating
+            all_food_reviews = Review.query.filter_by(food_item_id=item.id).all()
+            total_ratings = sum([r.rating for r in all_food_reviews]) + rating
+            item.total_reviews = len(all_food_reviews) + 1
+            item.avg_rating = total_ratings / item.total_reviews
+            
+            # Update Seller/Kitchen Rating
+            seller = User.query.get(item.seller_id)
+            if seller:
+                # Calculate average from all dishes owned by this seller
+                seller_items = FoodItem.query.filter_by(seller_id=seller.id).all()
+                seller_total_rating = 0
+                seller_total_reviews = 0
+                for si in seller_items:
+                    if si.total_reviews > 0:
+                        seller_total_rating += (si.avg_rating * si.total_reviews)
+                        seller_total_reviews += si.total_reviews
+                
+                if seller_total_reviews > 0:
+                    seller.avg_rating = seller_total_rating / seller_total_reviews
+                    seller.total_reviews = seller_total_reviews
+
             db.session.commit()
             flash('Review added successfully!', 'success')
             return redirect(url_for('food_detail', item_id=item.id))
