@@ -11,7 +11,7 @@ from werkzeug.utils import secure_filename
 from flask_socketio import SocketIO, emit
 import stripe
 import razorpay
-from models import db, User, FoodItem, Order, Review, OrderItem, Notification, CartItem, PushSubscription, Address
+from models import db, User, FoodItem, Order, Review, OrderItem, Notification, CartItem, PushSubscription, Address, PayoutRequest
 from sqlalchemy import func, text
 from dotenv import load_dotenv
 from flask_mail import Mail, Message
