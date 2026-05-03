@@ -719,14 +719,44 @@ def admin_dashboard():
         
     total_sales = db.session.query(func.sum(Order.total_amount)).filter(Order.status == 'Delivered').scalar() or 0
     total_commission = db.session.query(func.sum(Order.platform_commission + Order.service_fee)).filter(Order.status == 'Delivered').scalar() or 0
+    pending_payouts = PayoutRequest.query.filter_by(status='Pending').all()
     sellers = User.query.filter_by(role='seller').all()
     recent_orders = Order.query.order_by(Order.id.desc()).limit(10).all()
     
+    # User Stats
+    customer_count = User.query.filter_by(role='customer').count()
+    seller_count = User.query.filter_by(role='seller').count()
+    delivery_count = User.query.filter_by(role='delivery').count()
+
     return render_template('dashboard_admin.html', 
                            sales=total_sales, 
                            commission=total_commission, 
+                           payouts=pending_payouts,
                            sellers=sellers, 
-                           orders=recent_orders)
+                           orders=recent_orders,
+                           customer_count=customer_count,
+                           seller_count=seller_count,
+                           delivery_count=delivery_count)
+
+@app.route('/admin/payout/action/<int:payout_id>/<string:action>', methods=['POST'])
+@login_required
+def admin_payout_action(payout_id, action):
+    if current_user.email != os.getenv('ADMIN_EMAIL', 'admin@cloudkitchen.com'):
+        return jsonify({'success': False, 'message': 'Unauthorized'}), 403
+    
+    payout = PayoutRequest.query.get_or_404(payout_id)
+    if action == 'approve':
+        payout.status = 'Completed'
+        send_notification(payout.user_id, f"Your payout of ₹{payout.amount} has been approved and processed!", 'success')
+    elif action == 'reject':
+        payout.status = 'Rejected'
+        # Refund the wallet
+        payout.user.wallet_balance += payout.amount
+        send_notification(payout.user_id, f"Your payout of ₹{payout.amount} was rejected. The amount has been refunded to your wallet.", 'danger')
+    
+    db.session.commit()
+    flash(f'Payout request #{payout_id} has been {action}ed.', 'info')
+    return redirect(url_for('admin_dashboard'))
 
 @app.route('/seller/add_food', methods=['GET', 'POST'])
 @login_required

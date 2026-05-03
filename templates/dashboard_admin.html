@@ -1,73 +1,131 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="container" style="max-width: 1200px;">
-    <h2 style="margin-bottom: 2rem;">Platform Command Center (Admin)</h2>
-
-    <!-- High Level Stats -->
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; margin-bottom: 3rem;">
-        <div style="background: white; padding: 2rem; border-radius: var(--border-radius); box-shadow: var(--shadow); border-top: 5px solid #2ecc71;">
-            <p style="color: var(--text-muted); margin: 0; font-size: 0.9rem;">Total Gross Sales</p>
-            <h2 style="margin: 0.5rem 0 0 0;">₹{{ "%.2f"|format(sales) }}</h2>
+<div class="floral-bg" style="min-height: 80vh; padding: 2rem; border-radius: var(--border-radius);">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 3rem;">
+        <div>
+            <h1 style="font-family: 'Playfair Display', serif; color: var(--primary-color); margin: 0;">👑 Platform Control Center</h1>
+            <p style="color: var(--text-muted);">Welcome back, Admin. Here is what's happening today.</p>
         </div>
-        <div style="background: white; padding: 2rem; border-radius: var(--border-radius); box-shadow: var(--shadow); border-top: 5px solid var(--primary-color);">
-            <p style="color: var(--text-muted); margin: 0; font-size: 0.9rem;">Platform Revenue (Commissions)</p>
-            <h2 style="margin: 0.5rem 0 0 0; color: var(--primary-color);">₹{{ "%.2f"|format(commission) }}</h2>
-        </div>
-        <div style="background: white; padding: 2rem; border-radius: var(--border-radius); box-shadow: var(--shadow); border-top: 5px solid #3498db;">
-            <p style="color: var(--text-muted); margin: 0; font-size: 0.9rem;">Active Kitchens</p>
-            <h2 style="margin: 0.5rem 0 0 0;">{{ sellers|length }}</h2>
+        <div style="display: flex; gap: 1rem;">
+            <div style="background: white; padding: 1rem 2rem; border-radius: 50px; box-shadow: var(--shadow); border: 1px solid var(--accent-soft-pink);">
+                <span style="font-size: 0.9rem; color: var(--text-muted);">Total Profit:</span>
+                <span style="font-weight: 800; color: #2ecc71; font-size: 1.2rem; margin-left: 0.5rem;">₹{{ "%.2f"|format(commission) }}</span>
+            </div>
         </div>
     </div>
 
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
-        <!-- Kitchen Management -->
+    <!-- Stats Grid -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; margin-bottom: 3rem;">
+        <div style="background: white; padding: 1.5rem; border-radius: var(--border-radius); box-shadow: var(--shadow); border-bottom: 5px solid var(--primary-color);">
+            <p style="color: var(--text-muted); margin: 0; font-size: 0.9rem;">Gross Sales</p>
+            <h2 style="margin: 0.5rem 0 0 0; color: var(--text-main);">₹{{ "%.2f"|format(sales) }}</h2>
+        </div>
+        <div style="background: white; padding: 1.5rem; border-radius: var(--border-radius); box-shadow: var(--shadow); border-bottom: 5px solid var(--accent-lavender);">
+            <p style="color: var(--text-muted); margin: 0; font-size: 0.9rem;">👥 Customers</p>
+            <h2 style="margin: 0.5rem 0 0 0; color: var(--text-main);">{{ customer_count }}</h2>
+        </div>
+        <div style="background: white; padding: 1.5rem; border-radius: var(--border-radius); box-shadow: var(--shadow); border-bottom: 5px solid var(--primary-color);">
+            <p style="color: var(--text-muted); margin: 0; font-size: 0.9rem;">👩‍🍳 Cooks</p>
+            <h2 style="margin: 0.5rem 0 0 0; color: var(--text-main);">{{ seller_count }}</h2>
+        </div>
+        <div style="background: white; padding: 1.5rem; border-radius: var(--border-radius); box-shadow: var(--shadow); border-bottom: 5px solid #3498db;">
+            <p style="color: var(--text-muted); margin: 0; font-size: 0.9rem;">🛵 Riders</p>
+            <h2 style="margin: 0.5rem 0 0 0; color: var(--text-main);">{{ delivery_count }}</h2>
+        </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1.5fr 1fr; gap: 2rem;">
+        
+        <!-- Payout Requests -->
         <div style="background: white; padding: 2rem; border-radius: var(--border-radius); box-shadow: var(--shadow);">
-            <h3>Kitchen Partners</h3>
-            <table style="width: 100%; border-collapse: collapse; margin-top: 1rem;">
-                <thead>
-                    <tr style="text-align: left; border-bottom: 2px solid var(--border-color);">
-                        <th style="padding: 1rem 0;">Kitchen Name</th>
-                        <th style="padding: 1rem 0;">Status</th>
-                        <th style="padding: 1rem 0;">Verification</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for seller in sellers %}
-                    <tr style="border-bottom: 1px solid var(--border-color);">
-                        <td style="padding: 1rem 0;">{{ seller.username }}</td>
-                        <td style="padding: 1rem 0;">
-                            <span class="badge" style="background: {% if seller.is_open %}#e8f5e9{% else %}#ffebee{% endif %}; color: {% if seller.is_open %}#2e7d32{% else %}#c62828{% endif %};">
-                                {{ 'OPEN' if seller.is_open else 'CLOSED' }}
-                            </span>
-                        </td>
-                        <td style="padding: 1rem 0;">
-                            {% if seller.is_verified %}
-                                <span style="color: #2ecc71;">✅ Verified</span>
-                            {% else %}
-                                <button class="btn btn-secondary" style="padding: 0.3rem 0.8rem; font-size: 0.8rem;">Verify</button>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+            <h3 style="font-family: Playfair Display, serif; margin-top: 0;">🎀 Pending Payout Requests</h3>
+            {% if payouts %}
+            <div style="overflow-x: auto;">
+                <table style="width: 100%; border-collapse: collapse; margin-top: 1rem;">
+                    <thead>
+                        <tr style="text-align: left; border-bottom: 2px solid var(--bg-color);">
+                            <th style="padding: 1rem;">User</th>
+                            <th style="padding: 1rem;">Amount</th>
+                            <th style="padding: 1rem;">Method</th>
+                            <th style="padding: 1rem;">Details</th>
+                            <th style="padding: 1rem;">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for p in payouts %}
+                        <tr style="border-bottom: 1px solid var(--bg-color);">
+                            <td style="padding: 1rem;">
+                                <div style="font-weight: 700;">{{ p.user.username }}</div>
+                                <div style="font-size: 0.8rem; color: var(--text-muted);">{{ p.user.role|capitalize }}</div>
+                            </td>
+                            <td style="padding: 1rem; font-weight: 800; color: #2ecc71;">₹{{ "%.2f"|format(p.amount) }}</td>
+                            <td style="padding: 1rem;"><span class="badge" style="background: var(--accent-lavender);">{{ p.payment_method }}</span></td>
+                            <td style="padding: 1rem; font-size: 0.85rem;">{{ p.details }}</td>
+                            <td style="padding: 1rem;">
+                                <div style="display: flex; gap: 0.5rem;">
+                                    <form action="{{ url_for('admin_payout_action', payout_id=p.id, action='approve') }}" method="POST">
+                                        <button class="btn btn-primary" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;">Approve</button>
+                                    </form>
+                                    <form action="{{ url_for('admin_payout_action', payout_id=p.id, action='reject') }}" method="POST">
+                                        <button class="btn btn-secondary" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;">Reject</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div style="text-align: center; padding: 3rem;">
+                <p style="color: var(--text-muted);">No pending payout requests. All caught up! ✨</p>
+            </div>
+            {% endif %}
         </div>
 
-        <!-- Recent Activity -->
+        <!-- Recent Orders -->
         <div style="background: white; padding: 2rem; border-radius: var(--border-radius); box-shadow: var(--shadow);">
-            <h3>Recent Global Orders</h3>
-            <div style="display: grid; gap: 1rem; margin-top: 1rem;">
+            <h3 style="font-family: Playfair Display, serif; margin-top: 0;">🌸 Recent Orders</h3>
+            <div style="display: flex; flex-direction: column; gap: 1rem; margin-top: 1.5rem;">
                 {% for order in orders %}
-                <div style="display: flex; justify-content: space-between; align-items: center; background: var(--bg-color); padding: 1rem; border-radius: 8px;">
+                <div style="padding: 1rem; border: 1px solid var(--border-color); border-radius: 16px; background: var(--bg-color); display: flex; justify-content: space-between; align-items: center;">
                     <div>
-                        <strong>Order #{{ order.id }}</strong>
-                        <p style="margin: 0; font-size: 0.8rem; color: var(--text-muted);">{{ order.status }}</p>
+                        <div style="font-weight: 700;">Order #{{ order.id }}</div>
+                        <div style="font-size: 0.8rem; color: var(--text-muted);">₹{{ "%.2f"|format(order.total_amount) }} • {{ order.status }}</div>
                     </div>
-                    <strong>₹{{ "%.2f"|format(order.total_amount) }}</strong>
+                    <a href="{{ url_for('order_tracking', order_id=order.id) }}" style="color: var(--primary-color); text-decoration: none; font-weight: 700;">View →</a>
                 </div>
                 {% endfor %}
             </div>
+        </div>
+
+    </div>
+
+    <!-- Active Sellers Management -->
+    <div style="background: white; padding: 2rem; border-radius: var(--border-radius); box-shadow: var(--shadow); margin-top: 3rem;">
+        <h3 style="font-family: Playfair Display, serif; margin-top: 0;">👩‍🍳 Registered Kitchens</h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 1.5rem; margin-top: 1.5rem;">
+            {% for seller in sellers %}
+            <div style="padding: 1.5rem; border: 1px solid var(--border-color); border-radius: 20px; background: #fffafa; position: relative;">
+                <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
+                    <img src="{{ seller.profile_image }}" style="width: 50px; height: 50px; border-radius: 50%; object-fit: cover;">
+                    <div>
+                        <div style="font-weight: 800;">{{ seller.username }}</div>
+                        <div style="font-size: 0.8rem; color: var(--text-muted);">{{ seller.phone }}</div>
+                    </div>
+                </div>
+                <div style="font-size: 0.85rem; color: var(--text-main); margin-bottom: 1rem;">
+                    📍 {{ seller.location[:50] }}...
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span class="badge" style="background: {% if seller.is_verified %}#e8f5e9{% else %}#fff3e0{% endif %}; color: {% if seller.is_verified %}#2e7d32{% else %}#ef6c00{% endif %};">
+                        {{ 'Verified' if seller.is_verified else 'Pending Verification' }}
+                    </span>
+                    <a href="{{ url_for('cook_profile', seller_id=seller.id) }}" style="color: var(--primary-color); text-decoration: none; font-size: 0.9rem; font-weight: 700;">Profile</a>
+                </div>
+            </div>
+            {% endfor %}
         </div>
     </div>
 </div>
